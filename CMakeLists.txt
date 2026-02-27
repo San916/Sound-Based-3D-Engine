@@ -11,9 +11,20 @@ find_package(glm REQUIRED)
 
 set(SOURCES
     src/main.cpp
+    src/vulkan_handle.cpp
+    src/vulkan_validation_layers.cpp
+)
+
+set(INCLUDES
+    include
 )
 
 add_executable(Engine ${SOURCES})
+
+target_include_directories(Engine
+    PRIVATE        
+        ${INCLUDES}
+)
 
 target_link_libraries(Engine
     PRIVATE
