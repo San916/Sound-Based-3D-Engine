@@ -3,13 +3,14 @@
 
 #include <vector>
 
-typedef VkInstance VkInstance;
+#include <vulkan/vulkan.h>
 
 class VulkanHandle {
 private:
     VkInstance vk_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    VkDevice logical_device = VK_NULL_HANDLE;
 
     void init_vulkan();
 public:

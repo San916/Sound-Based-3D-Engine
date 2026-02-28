@@ -5,6 +5,7 @@
 
 #include <vulkan_handle.h>
 
+#include <vulkan_logical_device.h>
 #include <vulkan_physical_device.h>
 #include <vulkan_validation_layers.h>
 
@@ -50,7 +51,9 @@ VulkanHandle::VulkanHandle() {
         setup_debug_messenger(vk_instance, debug_messenger);
     }
 
-    setup_physical_device(vk_instance, physical_device);
+    uint32_t queue_family_index;
+    setup_physical_device(vk_instance, physical_device, queue_family_index);
+    setup_logical_device(physical_device, logical_device, queue_family_index);
 }
 
 VulkanHandle::~VulkanHandle() {
@@ -58,5 +61,6 @@ VulkanHandle::~VulkanHandle() {
         destroy_debug_messenger(vk_instance, debug_messenger);
     }
 
+    vkDestroyDevice(logical_device, nullptr);
     vkDestroyInstance(vk_instance, nullptr);
 }

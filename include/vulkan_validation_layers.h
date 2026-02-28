@@ -2,6 +2,7 @@
 #define VULKAN_VALIDATION_LAYERS_H
 
 #include <vector>
+#include <vulkan/vulkan.h>
 
 static std::vector<const char*> validation_layers = {
     "VK_LAYER_KHRONOS_validation"
