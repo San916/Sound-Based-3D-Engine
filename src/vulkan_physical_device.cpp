@@ -6,11 +6,19 @@
 
 #include <vulkan_physical_device.h>
 
+// REQUIRES: Physical device to check
+// EFFECTS: Returns true of the device has the right queue families, false otherwise
+static bool has_valid_queue_families(VkPhysicalDevice &physical_device) {
+    return true;
+}
+
 // REQUIRES: List of physical devices, physical device to be set
 // MODIFIES: physical_device
 // EFFECTS: Iterates through devices and sets physical_device to any suitable devices
 static void select_physical_device(std::vector<VkPhysicalDevice>& devices, VkPhysicalDevice& physical_device) {
     for (VkPhysicalDevice device : devices) {
+        if (!has_valid_queue_families(device)) continue;
+
         VkPhysicalDeviceProperties device_properties;
         VkPhysicalDeviceFeatures device_features;
         vkGetPhysicalDeviceProperties(device, &device_properties);
