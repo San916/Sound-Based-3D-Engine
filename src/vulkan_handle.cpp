@@ -5,6 +5,7 @@
 
 #include <vulkan_handle.h>
 
+#include <vulkan_physical_device.h>
 #include <vulkan_validation_layers.h>
 
 #ifdef NDEBUG
@@ -48,6 +49,8 @@ VulkanHandle::VulkanHandle() {
     if (enable_validation_layers) {
         setup_debug_messenger(vk_instance, debug_messenger);
     }
+
+    setup_physical_device(vk_instance, physical_device);
 }
 
 VulkanHandle::~VulkanHandle() {

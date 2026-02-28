@@ -7,8 +7,9 @@ typedef VkInstance VkInstance;
 
 class VulkanHandle {
 private:
-    VkInstance vk_instance;
-    VkDebugUtilsMessengerEXT debug_messenger;
+    VkInstance vk_instance = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
 
     void init_vulkan();
 public:

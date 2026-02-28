@@ -12,6 +12,7 @@ find_package(glm REQUIRED)
 set(SOURCES
     src/main.cpp
     src/vulkan_handle.cpp
+    src/vulkan_physical_device.cpp
     src/vulkan_validation_layers.cpp
 )
 

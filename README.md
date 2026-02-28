@@ -16,3 +16,9 @@ cmake --build .
 ```
 debug\engine
 ```
+* To run without validation layers:
+```
+cmake --build . --config Release
+
+release\engine
+```
