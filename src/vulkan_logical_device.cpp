@@ -1,10 +1,12 @@
 #include <iostream>
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 
 #include <vulkan_logical_device.h>
+#include <vulkan_physical_device.h>
 
-// REQUIRES: Physical device, queue family index of physical device, and logical device to be set
 // MODIFIES: logical_device
 // EFFECTS: Sets up logical device
 void setup_logical_device(VkPhysicalDevice& physical_device, VkDevice& logical_device, uint32_t queue_family_index) {
@@ -21,8 +23,8 @@ void setup_logical_device(VkPhysicalDevice& physical_device, VkDevice& logical_d
     device_create_info.pQueueCreateInfos = &device_queue_create_info;
     device_create_info.queueCreateInfoCount = 1;
     device_create_info.pEnabledFeatures = nullptr;
-    device_create_info.ppEnabledExtensionNames = nullptr;
-    device_create_info.enabledExtensionCount = 0;
+    device_create_info.ppEnabledExtensionNames = required_device_extensions.data();
+    device_create_info.enabledExtensionCount = static_cast<uint32_t>(required_device_extensions.size());
 
     if (vkCreateDevice(physical_device, &device_create_info, nullptr, &logical_device) != VK_SUCCESS) {
         throw std::runtime_error("setup_logical_device(): Failed to create logical device!");

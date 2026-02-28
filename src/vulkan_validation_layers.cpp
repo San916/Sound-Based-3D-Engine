@@ -7,6 +7,10 @@
 
 #include <vulkan_validation_layers.h>
 
+static const std::vector<const char*> validation_layers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
 // Debug callback used in add_validation_layers()
 static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, 
@@ -26,7 +30,6 @@ static void setup_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT
     debug_messenger_create_info.pfnUserCallback = debug_callback;
 }
 
-// REQUIRES: List of validation layers
 // EFFECTS: Checks if validation layers are supported/exist, if any are not, returns false
 static bool check_validation_layer_support() {
     uint32_t layer_count;
@@ -74,8 +77,6 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-
-// REQUIRES: vulkan instance create info and glfw extensions
 // MODIFIES: create_info, extensions
 // EFFECTS: Adds validation layers to create_info and extensions
 void add_validation_layers(
@@ -95,8 +96,6 @@ void add_validation_layers(
     create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debug_create_info;
 }
 
-
-// REQUIRES: vulkan instance and debug messenger
 // MODIFIES: vk_instance, debug_messenger
 // EFFECTS: sets up debug messenger for the provided instance
 void setup_debug_messenger(VkInstance& vk_instance, VkDebugUtilsMessengerEXT& debug_messenger) {
@@ -104,10 +103,12 @@ void setup_debug_messenger(VkInstance& vk_instance, VkDebugUtilsMessengerEXT& de
     setup_debug_messenger_create_info(debug_create_info);
 
     if (CreateDebugUtilsMessengerEXT(vk_instance, &debug_create_info, nullptr, &debug_messenger) != VK_SUCCESS) {
-        throw std::runtime_error("failed to set up debug messenger!");
+        throw std::runtime_error("setup_debug_messenger(): Failed to set up debug messenger!");
     }
 }
 
+// MODIFIES: destroy_debug_messenger
+// EFFECTS: destroys destroy_debug_messenger
 void destroy_debug_messenger(VkInstance& vk_instance, VkDebugUtilsMessengerEXT& debug_messenger) {
     if (debug_messenger != VK_NULL_HANDLE) {
         DestroyDebugUtilsMessengerEXT(vk_instance, debug_messenger, nullptr);

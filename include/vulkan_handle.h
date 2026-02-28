@@ -4,11 +4,15 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 class VulkanHandle {
 private:
+    GLFWwindow* window;
+    
     VkInstance vk_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
     VkDevice logical_device = VK_NULL_HANDLE;
 
@@ -18,6 +22,8 @@ public:
     VulkanHandle(const VulkanHandle&) = delete;
     VulkanHandle& operator=(const VulkanHandle&) = delete;
     ~VulkanHandle();
+
+    void run();
 };
 
 #endif

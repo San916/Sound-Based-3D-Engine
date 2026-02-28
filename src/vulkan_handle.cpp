@@ -8,6 +8,7 @@
 #include <vulkan_logical_device.h>
 #include <vulkan_physical_device.h>
 #include <vulkan_validation_layers.h>
+#include <vulkan_window.h>
 
 #ifdef NDEBUG
     const bool enable_validation_layers = false;
@@ -46,14 +47,16 @@ void VulkanHandle::init_vulkan() {
 }
 
 VulkanHandle::VulkanHandle() {
+    setup_window(window);
     init_vulkan();
     if (enable_validation_layers) {
         setup_debug_messenger(vk_instance, debug_messenger);
     }
+    setup_window_surface(vk_instance, window, surface);
 
-    uint32_t queue_family_index;
-    setup_physical_device(vk_instance, physical_device, queue_family_index);
-    setup_logical_device(physical_device, logical_device, queue_family_index);
+    QueueFamilyIndices queue_family_indices;
+    setup_physical_device(vk_instance, physical_device, surface, queue_family_indices);
+    setup_logical_device(physical_device, logical_device, queue_family_indices.graphics_family_index.value());
 }
 
 VulkanHandle::~VulkanHandle() {
@@ -62,5 +65,18 @@ VulkanHandle::~VulkanHandle() {
     }
 
     vkDestroyDevice(logical_device, nullptr);
+    vkDestroySurfaceKHR(vk_instance, surface, nullptr);
     vkDestroyInstance(vk_instance, nullptr);
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+void VulkanHandle::run() {
+    while(!glfwWindowShouldClose(window)) {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+        glfwPollEvents();
+    }
 }
