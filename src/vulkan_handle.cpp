@@ -67,6 +67,10 @@ VulkanHandle::~VulkanHandle() {
         destroy_debug_messenger(vk_instance, debug_messenger);
     }
 
+    for (VkImageView image_view : swap_chain_image_views) {
+        vkDestroyImageView(logical_device, image_view, nullptr);
+    }
+
     vkDestroySwapchainKHR(logical_device, swap_chain, nullptr);
     vkDestroyDevice(logical_device, nullptr);
     vkDestroySurfaceKHR(vk_instance, surface, nullptr);

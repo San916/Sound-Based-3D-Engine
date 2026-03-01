@@ -24,5 +24,11 @@ void create_swap_chain(
     VkSwapchainKHR& swap_chain, std::vector<VkImage>& swap_chain_images,
     VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent
 );
+void create_swap_chain_image_views(
+    VkDevice logical_device, 
+    const std::vector<VkImage>& swap_chain_images, 
+    std::vector<VkImageView>& swap_chain_image_views, 
+    VkFormat swap_chain_image_format
+);
 
 #endif
