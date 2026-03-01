@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <cstdint>
 #include <set>
 #include <string>
 #include <vector>
@@ -7,6 +8,7 @@
 #include <vulkan/vulkan.h>
 
 #include <vulkan_physical_device.h>
+#include <vulkan_swap_chain.h>
 
 #define DESIRED_QUEUE_FAMILY_FLAGS VK_QUEUE_GRAPHICS_BIT
 
@@ -61,11 +63,12 @@ static bool has_valid_queue_families(VkPhysicalDevice physical_device, VkSurface
 // MODIFIES: physical_device, selected_queue_family_index
 // EFFECTS: Iterates through devices and sets physical_device to any suitable devices
 // Returns selected_queue_family_index with the selected index for the physical device
-static void select_physical_device(std::vector<VkPhysicalDevice>& devices, VkPhysicalDevice& physical_device, VkSurfaceKHR surface, QueueFamilyIndices& selected_family_indices) {
+static void select_physical_device(const std::vector<VkPhysicalDevice>& devices, VkPhysicalDevice& physical_device, VkSurfaceKHR surface, QueueFamilyIndices& selected_family_indices) {
     for (VkPhysicalDevice device : devices) {
         QueueFamilyIndices queue_family_indices;
         if (!has_valid_queue_families(device, surface, queue_family_indices)) continue;
         if (!supports_device_extensions(device)) continue;
+        if (!get_swap_chain_support_details(device, surface).supports_swap_chain()) continue;
 
         VkPhysicalDeviceProperties device_properties;
         VkPhysicalDeviceFeatures device_features;
