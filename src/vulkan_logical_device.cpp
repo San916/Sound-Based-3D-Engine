@@ -25,6 +25,7 @@ void setup_logical_device(VkPhysicalDevice physical_device, VkDevice& logical_de
         VkDeviceQueueCreateInfo device_queue_create_info{};
         device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         device_queue_create_info.pNext = nullptr;
+        device_queue_create_info.flags = 0;
         device_queue_create_info.queueFamilyIndex = queue_family_index;
         device_queue_create_info.queueCount = 1;
         device_queue_create_info.pQueuePriorities = &p_queue_priorities;

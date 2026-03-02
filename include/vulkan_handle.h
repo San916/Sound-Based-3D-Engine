@@ -25,6 +25,8 @@ private:
     VkFormat swap_chain_image_format;
     VkExtent2D swap_chain_extent;
 
+    VkPipelineLayout pipeline_layout;
+
     void init_vulkan();
 public:
     VulkanHandle();

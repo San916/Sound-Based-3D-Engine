@@ -58,7 +58,10 @@ VkPresentModeKHR get_best_swap_present_mode(const std::vector<VkPresentModeKHR>&
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-// EFFECTS: 
+// EFFECTS: Determine the swap chain extent
+// If the current extent isn't (0xFFFFFFFF, 0xFFFFFFFF), return the current extent
+// Otherwise, return the size of the GLFW window in pixels (glfwGetFramebufferSize returns size of window in pixels),
+//     bounded by the surface's min and max image extent
 VkExtent2D choose_swap_excent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& surface_capabilities) {
     if (surface_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return surface_capabilities.currentExtent;
