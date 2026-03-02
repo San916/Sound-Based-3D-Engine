@@ -6,6 +6,7 @@
 
 #include <vulkan_handle.h>
 
+#include <vulkan_frame_buffer.h>
 #include <vulkan_graphics_pipeline.h>
 #include <vulkan_logical_device.h>
 #include <vulkan_physical_device.h>
@@ -62,11 +63,16 @@ VulkanHandle::VulkanHandle() {
     setup_logical_device(physical_device, logical_device, queue_family_indices, graphics_queue, present_queue);
     create_swap_chain(window, surface, physical_device, logical_device, queue_family_indices, swap_chain, swap_chain_images, swap_chain_image_format, swap_chain_extent);
     create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, graphics_pipeline);
+    create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
 }
 
 VulkanHandle::~VulkanHandle() {
     if (enable_validation_layers) {
         destroy_debug_messenger(vk_instance, debug_messenger);
+    }
+
+    for (VkFramebuffer frame_buffer : frame_buffers) {
+        vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
     }
 
     for (VkImageView image_view : swap_chain_image_views) {

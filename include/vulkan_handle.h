@@ -25,6 +25,8 @@ private:
     VkFormat swap_chain_image_format;
     VkExtent2D swap_chain_extent;
 
+    std::vector<VkFramebuffer> frame_buffers;
+
     VkPipelineLayout pipeline_layout;
     VkRenderPass render_pass;
     VkPipeline graphics_pipeline;
