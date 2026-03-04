@@ -12,6 +12,7 @@
 #include <vulkan_logical_device.h>
 #include <vulkan_physical_device.h>
 #include <vulkan_swap_chain.h>
+#include <vulkan_uniform_buffer.h>
 #include <vulkan_validation_layers.h>
 #include <vulkan_window.h>
 
@@ -92,6 +93,8 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
+    // update_uniform_buffer(camera_uniform_buffers, swap_chain_image_index)
+
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
     VkCommandBuffer command_buffer = command_buffers[frame_index];
@@ -151,13 +154,17 @@ VulkanHandle::VulkanHandle() {
     setup_logical_device(physical_device, logical_device, queue_family_indices, graphics_queue, present_queue);
     create_swap_chain(window, surface, physical_device, logical_device, queue_family_indices, swap_chain, swap_chain_images, swap_chain_image_format, swap_chain_extent);
     create_swap_chain_image_views(logical_device, swap_chain_images, swap_chain_image_views, swap_chain_image_format);
-    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, graphics_pipeline);
+    create_descriptor_set_layout_camera(logical_device, descriptor_set_layout_camera);
+    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, descriptor_set_layout_camera, graphics_pipeline);
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
+    create_uniform_buffers(
+        logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
+        uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
+    );
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
-
 VulkanHandle::~VulkanHandle() {
     if (enable_validation_layers) {
         destroy_debug_messenger(vk_instance, debug_messenger);
@@ -171,15 +178,22 @@ VulkanHandle::~VulkanHandle() {
         vkDestroySemaphore(logical_device, render_semaphores[i], nullptr);    
     }
 
+    vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
+    vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);
+    vkDestroyRenderPass(logical_device, render_pass, nullptr);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroyBuffer(logical_device, uniform_buffers[i], nullptr);
+        vkFreeMemory(logical_device, uniform_buffers_memory[i], nullptr);
+    }
+
+    vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout_camera, nullptr);
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
 
     for (VkFramebuffer frame_buffer : frame_buffers) {
         vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);
     }
 
-    vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
-    vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);
-    vkDestroyRenderPass(logical_device, render_pass, nullptr);
 
     for (VkImageView image_view : swap_chain_image_views) {
         vkDestroyImageView(logical_device, image_view, nullptr);

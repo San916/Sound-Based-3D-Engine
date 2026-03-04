@@ -35,6 +35,8 @@ set(SOURCES
     src/vulkan_logical_device.cpp
     src/vulkan_physical_device.cpp
     src/vulkan_swap_chain.cpp
+    src/vulkan_uniform_buffer.cpp
+    src/vulkan_utils.cpp
     src/vulkan_validation_layers.cpp
     src/vulkan_window.cpp
 )

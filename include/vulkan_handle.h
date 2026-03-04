@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 class VulkanHandle {
 private:
@@ -27,12 +28,17 @@ private:
 
     std::vector<VkFramebuffer> frame_buffers;
 
+    VkDescriptorSetLayout descriptor_set_layout_camera;
     VkPipelineLayout pipeline_layout;
     VkRenderPass render_pass;
     VkPipeline graphics_pipeline;
 
     VkCommandPool command_pool;
     std::vector<VkCommandBuffer> command_buffers;
+
+    std::vector<VkBuffer> uniform_buffers;
+    std::vector<VkDeviceMemory> uniform_buffers_memory;
+    std::vector<void*> uniform_buffers_mapped;
 
     size_t frame_index = 0;
     std::vector<VkSemaphore> acquire_semaphores;

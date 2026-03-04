@@ -196,7 +196,8 @@ static void create_render_pass(VkDevice logical_device, VkFormat swap_chain_imag
 void create_graphics_pipeline(
     VkDevice logical_device,
     VkExtent2D swap_chain_extent, VkFormat swap_chain_image_format,
-    VkPipelineLayout& pipeline_layout, VkRenderPass& render_pass, VkPipeline& graphics_pipeline
+    VkPipelineLayout& pipeline_layout, VkRenderPass& render_pass, 
+    VkDescriptorSetLayout descriptor_set_layout_camera, VkPipeline& graphics_pipeline
 ) {
     std::vector<char> vert_shader_code = read_file("./../assets/shaders/shader_vert.spv");
     std::vector<char> frag_shader_code = read_file("./../assets/shaders/shader_frag.spv");
@@ -218,7 +219,10 @@ void create_graphics_pipeline(
     VkPipelineLayoutCreateInfo pipeline_layout_create_info{};
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.pNext = nullptr;
-    pipeline_layout_create_info.setLayoutCount = 0;
+
+    VkDescriptorSetLayout descriptor_set_layouts[] = {descriptor_set_layout_camera};
+    pipeline_layout_create_info.setLayoutCount = 1;
+    pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
     pipeline_layout_create_info.pushConstantRangeCount = 0;
 
     if (vkCreatePipelineLayout(logical_device, &pipeline_layout_create_info, nullptr, &pipeline_layout) != VK_SUCCESS) {
