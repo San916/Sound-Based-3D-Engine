@@ -197,7 +197,7 @@ void create_graphics_pipeline(
     VkDevice logical_device,
     VkExtent2D swap_chain_extent, VkFormat swap_chain_image_format,
     VkPipelineLayout& pipeline_layout, VkRenderPass& render_pass, 
-    VkDescriptorSetLayout descriptor_set_layout_camera, VkPipeline& graphics_pipeline
+    VkDescriptorSetLayout descriptor_set_layout, VkPipeline& graphics_pipeline
 ) {
     std::vector<char> vert_shader_code = read_file("./../assets/shaders/shader_vert.spv");
     std::vector<char> frag_shader_code = read_file("./../assets/shaders/shader_frag.spv");
@@ -220,7 +220,7 @@ void create_graphics_pipeline(
     pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipeline_layout_create_info.pNext = nullptr;
 
-    VkDescriptorSetLayout descriptor_set_layouts[] = {descriptor_set_layout_camera};
+    VkDescriptorSetLayout descriptor_set_layouts[] = {descriptor_set_layout};
     pipeline_layout_create_info.setLayoutCount = 1;
     pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
     pipeline_layout_create_info.pushConstantRangeCount = 0;

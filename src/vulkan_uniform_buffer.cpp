@@ -7,8 +7,9 @@
 #include <vulkan_uniform_buffer.h>
 #include <vulkan_utils.h>
 
-// EFFECTS: Creates a descriptor set layout for the camera information uniform buffer object and returns it
-void create_descriptor_set_layout_camera(VkDevice logical_device, VkDescriptorSetLayout& descriptor_set_layout) {
+// EFFECTS: Creates a descriptor set layout and returns it
+// Currently specifies vertex and fragment shader usage
+void create_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& descriptor_set_layout) {
     VkDescriptorSetLayoutBinding descriptor_set_layout_binding{};
     descriptor_set_layout_binding.binding = 0;
     descriptor_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -23,7 +24,48 @@ void create_descriptor_set_layout_camera(VkDevice logical_device, VkDescriptorSe
     descriptor_set_layout_create_info.pBindings = &descriptor_set_layout_binding;
 
     if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout) != VK_SUCCESS) {
-        throw std::runtime_error("create_descriptor_set_layout_camera(): Failed to create descriptor set layout!");
+        throw std::runtime_error("create_descriptor_set_layout(): Failed to create descriptor set layout!");
+    }
+}
+
+// MODIFIES: descriptor_pool
+// EFFECTS: Creates descriptor pool with entries equal to the number of inflight frames
+void create_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& descriptor_pool) {
+    VkDescriptorPoolSize descriptor_pool_size{};
+    descriptor_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptor_pool_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
+    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptor_pool_create_info.pNext = nullptr;
+    descriptor_pool_create_info.maxSets = static_cast<uint32_t>(max_frames_in_flight);
+    descriptor_pool_create_info.poolSizeCount = 1;
+    descriptor_pool_create_info.pPoolSizes = &descriptor_pool_size;
+
+    if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &descriptor_pool) != VK_SUCCESS) {
+        throw std::runtime_error("create_descriptor_pool(): Failed to create descriptor pool!");
+    }
+}
+
+void create_descriptor_sets(
+    VkDevice logical_device, 
+    size_t max_frames_in_flight, 
+    VkDescriptorPool descriptor_pool,
+    const VkDescriptorSetLayout& descriptor_set_layout,
+    std::vector<VkDescriptorSet>& descriptor_sets
+) {
+    descriptor_sets.resize(max_frames_in_flight);
+
+    std::vector<VkDescriptorSetLayout> descriptor_set_layouts(max_frames_in_flight, descriptor_set_layout);
+    VkDescriptorSetAllocateInfo descriptor_set_alloc_info{};
+    descriptor_set_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    descriptor_set_alloc_info.pNext = nullptr;
+    descriptor_set_alloc_info.descriptorPool = descriptor_pool;
+    descriptor_set_alloc_info.descriptorSetCount = static_cast<uint32_t>(max_frames_in_flight);
+    descriptor_set_alloc_info.pSetLayouts = descriptor_set_layouts.data();
+
+    if (vkAllocateDescriptorSets(logical_device, &descriptor_set_alloc_info, descriptor_sets.data()) != VK_SUCCESS) {
+        throw std::runtime_error("create_descriptor_sets(): Failed to allocate descriptor sets!");
     }
 }
 

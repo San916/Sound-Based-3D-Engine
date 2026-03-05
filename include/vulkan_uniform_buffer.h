@@ -15,7 +15,15 @@ typedef struct CameraUBO {
     glm::vec4 position;
 } CameraUBO;
 
-void create_descriptor_set_layout_camera(VkDevice logical_device, VkDescriptorSetLayout& descriptor_set_layout);
+void create_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& descriptor_set_layout);
+void create_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& descriptor_pool);
+void create_descriptor_sets(
+    VkDevice logical_device, 
+    size_t max_frames_in_flight, 
+    VkDescriptorPool descriptor_pool,
+    const VkDescriptorSetLayout& descriptor_set_layout,
+    std::vector<VkDescriptorSet>& descriptor_sets
+);
 void create_uniform_buffers(
     VkDevice logical_device,
     VkPhysicalDevice physical_device,

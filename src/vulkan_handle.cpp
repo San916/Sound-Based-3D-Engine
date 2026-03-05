@@ -154,14 +154,16 @@ VulkanHandle::VulkanHandle() {
     setup_logical_device(physical_device, logical_device, queue_family_indices, graphics_queue, present_queue);
     create_swap_chain(window, surface, physical_device, logical_device, queue_family_indices, swap_chain, swap_chain_images, swap_chain_image_format, swap_chain_extent);
     create_swap_chain_image_views(logical_device, swap_chain_images, swap_chain_image_views, swap_chain_image_format);
-    create_descriptor_set_layout_camera(logical_device, descriptor_set_layout_camera);
-    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, descriptor_set_layout_camera, graphics_pipeline);
+    create_descriptor_set_layout(logical_device, descriptor_set_layout);
+    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, descriptor_set_layout, graphics_pipeline);
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
     create_uniform_buffers(
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
     );
+    create_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool);
+    create_descriptor_sets(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool, descriptor_set_layout, descriptor_sets);
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
@@ -187,7 +189,8 @@ VulkanHandle::~VulkanHandle() {
         vkFreeMemory(logical_device, uniform_buffers_memory[i], nullptr);
     }
 
-    vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout_camera, nullptr);
+    vkDestroyDescriptorPool(logical_device, descriptor_pool, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout, nullptr);
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
 
     for (VkFramebuffer frame_buffer : frame_buffers) {

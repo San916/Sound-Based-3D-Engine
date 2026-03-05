@@ -28,7 +28,9 @@ private:
 
     std::vector<VkFramebuffer> frame_buffers;
 
-    VkDescriptorSetLayout descriptor_set_layout_camera;
+    VkDescriptorPool descriptor_pool;
+    std::vector<VkDescriptorSet> descriptor_sets;
+    VkDescriptorSetLayout descriptor_set_layout;
     VkPipelineLayout pipeline_layout;
     VkRenderPass render_pass;
     VkPipeline graphics_pipeline;
