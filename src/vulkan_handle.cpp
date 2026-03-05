@@ -93,13 +93,17 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
-    // update_uniform_buffer(camera_uniform_buffers, swap_chain_image_index)
+    update_uniform_buffer(frame_index, uniform_buffers_mapped);
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
     VkCommandBuffer command_buffer = command_buffers[frame_index];
     vkResetCommandBuffer(command_buffer, 0);
-    draw_command_buffer(render_pass, frame_buffers, swap_chain_extent, swap_chain_image_index, graphics_pipeline, command_buffer);
+    draw_command_buffer(
+        render_pass, frame_buffers, swap_chain_extent, 
+        swap_chain_image_index, frame_index, pipeline_layout, 
+        descriptor_sets, graphics_pipeline, command_buffer
+    );
 
     
     VkSubmitInfo submit_info{};
@@ -163,7 +167,7 @@ VulkanHandle::VulkanHandle() {
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
     );
     create_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool);
-    create_descriptor_sets(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool, descriptor_set_layout, descriptor_sets);
+    create_descriptor_sets(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool, uniform_buffers, descriptor_set_layout, descriptor_sets);
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
