@@ -12,6 +12,10 @@
 
 #define DESIRED_QUEUE_FAMILY_FLAGS VK_QUEUE_GRAPHICS_BIT
 
+const std::vector<const char*> required_device_extensions = {
+    "VK_KHR_swapchain"
+};
+
 // EFFECTS: Checks if given device supports the required extensions
 static bool supports_device_extensions(VkPhysicalDevice physical_device) {
     uint32_t property_count;
@@ -38,12 +42,10 @@ static bool has_valid_queue_families(VkPhysicalDevice physical_device, VkSurface
     std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
 
-    bool queue_family_index_set = false;
     for (uint32_t i = 0; i < queue_families.size(); i++) {
         VkQueueFamilyProperties queue_family = queue_families[i];
-        if (queue_family.queueFlags & DESIRED_QUEUE_FAMILY_FLAGS == DESIRED_QUEUE_FAMILY_FLAGS) {
+        if ((queue_family.queueFlags & DESIRED_QUEUE_FAMILY_FLAGS) == DESIRED_QUEUE_FAMILY_FLAGS) {
             queue_family_indices.graphics_family_index = i;
-            queue_family_index_set = true;
         }
 
         VkBool32 device_supported = VK_FALSE;

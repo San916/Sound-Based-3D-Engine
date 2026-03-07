@@ -87,7 +87,7 @@ VkExtent2D choose_swap_excent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR
 void create_swap_chain(
     GLFWwindow* window, VkSurfaceKHR surface, 
     VkPhysicalDevice physical_device, VkDevice logical_device, 
-    QueueFamilyIndices queue_family_indices, 
+    const QueueFamilyIndices& queue_family_indices, 
     VkSwapchainKHR& swap_chain, std::vector<VkImage>& swap_chain_images,
     VkFormat& swap_chain_image_format, VkExtent2D& swap_chain_extent
 ) {

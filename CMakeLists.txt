@@ -32,6 +32,7 @@ set(SOURCES
     src/vulkan_frame_buffer.cpp
     src/vulkan_graphics_pipeline.cpp
     src/vulkan_handle.cpp
+    src/vulkan_index_buffer.cpp
     src/vulkan_logical_device.cpp
     src/vulkan_physical_device.cpp
     src/vulkan_swap_chain.cpp

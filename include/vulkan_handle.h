@@ -43,10 +43,18 @@ private:
     std::vector<Vertex> vertices = {
         {{0.0f, -0.5f, 0.0f}},
         {{0.5f, 0.5f, 0.0f}},
-        {{-0.5f, 0.5f, 0.0f}}
+        {{-0.5f, 0.5f, 0.0f}},
+        {{-1.0f, -0.5f, 0.0f}},
     };
     VkBuffer vertex_buffer;
     VkDeviceMemory vertex_buffer_memory;
+
+    std::vector<uint32_t> indices = {
+        0, 1, 2,
+        0, 2, 3,
+    };
+    VkBuffer index_buffer;
+    VkDeviceMemory index_buffer_memory;
 
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;

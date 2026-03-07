@@ -5,6 +5,12 @@
 
 typedef struct QueueFamilyIndices QueueFamilyIndices;
 
-void setup_logical_device(VkPhysicalDevice physical_device, VkDevice& logical_device, QueueFamilyIndices queue_family_indices, VkQueue& graphics_queue, VkQueue& present_queue);
+void setup_logical_device(
+    VkPhysicalDevice physical_device, 
+    VkDevice& logical_device, 
+    const QueueFamilyIndices& queue_family_indices, 
+    VkQueue& graphics_queue, 
+    VkQueue& present_queue
+);
 
 #endif
