@@ -27,8 +27,7 @@ void get_vertex_attribute_descriptions(std::vector<VkVertexInputAttributeDescrip
 }
 
 // MODIFIES: vertex_buffer, vertex_buffer_memory
-// EFFECTS: Creates vertex buffer handle, and initializes vertex buffer memory
-// Uses staging buffer 
+// EFFECTS: Creates vertex buffer handle, and initializes vertex buffer memory using the given vertices
 void create_vertex_buffer(
     VkDevice logical_device, 
     VkPhysicalDevice physical_device, 
@@ -62,7 +61,8 @@ void create_vertex_buffer(
         logical_device, 
         physical_device, 
         buffer_size, 
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
         vertex_buffer, 
         vertex_buffer_memory

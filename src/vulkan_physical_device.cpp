@@ -10,10 +10,15 @@
 #include <vulkan_physical_device.h>
 #include <vulkan_swap_chain.h>
 
-#define DESIRED_QUEUE_FAMILY_FLAGS VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT
+#define DESIRED_QUEUE_FAMILY_FLAGS (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)
 
 const std::vector<const char*> required_device_extensions = {
-    "VK_KHR_swapchain"
+    "VK_KHR_swapchain",
+    "VK_KHR_acceleration_structure",
+    "VK_KHR_ray_query",
+    "VK_KHR_deferred_host_operations",
+    "VK_KHR_buffer_device_address",
+    "VK_EXT_descriptor_indexing",
 };
 
 // EFFECTS: Checks if given device supports the required extensions

@@ -28,6 +28,7 @@ add_custom_target(compile_shaders ALL DEPENDS ${VERT_SPV_OUTPUT} ${FRAG_SPV_OUTP
 
 set(SOURCES
     src/main.cpp
+    src/vulkan_acceleration_structure.cpp
     src/vulkan_command_buffer.cpp
     src/vulkan_frame_buffer.cpp
     src/vulkan_graphics_pipeline.cpp

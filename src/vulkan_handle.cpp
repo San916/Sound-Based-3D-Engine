@@ -6,6 +6,7 @@
 
 #include <vulkan_handle.h>
 
+#include <vulkan_acceleration_structure.h>
 #include <vulkan_command_buffer.h>
 #include <vulkan_frame_buffer.h>
 #include <vulkan_graphics_pipeline.h>
@@ -31,7 +32,7 @@ void VulkanHandle::init_vulkan() {
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app_info.pApplicationName = "3D Engine";
     app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app_info.apiVersion = VK_API_VERSION_1_4;
+    app_info.apiVersion = VK_API_VERSION_1_3;
 
 
     VkInstanceCreateInfo create_info{};
@@ -166,6 +167,19 @@ VulkanHandle::VulkanHandle() {
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
     create_vertex_buffer(logical_device, physical_device, command_pool, graphics_queue, vertices, vertex_buffer, vertex_buffer_memory);
     create_index_buffer(logical_device, physical_device, command_pool, graphics_queue, indices, index_buffer, index_buffer_memory);
+    create_bottom_level_acceleration_structure(
+        logical_device, physical_device, 
+        command_pool, graphics_queue, 
+        vertex_buffer, index_buffer, 
+        vertices, indices, 
+        blas_buffer, blas_buffer_memory, blas
+    );
+    create_top_level_acceleration_structure(
+        logical_device, physical_device, 
+        command_pool, graphics_queue, 
+        blas, 
+        tlas_buffer, tlas_buffer_memory, tlas
+    );
     create_uniform_buffers(
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
@@ -197,6 +211,9 @@ VulkanHandle::~VulkanHandle() {
 
     vkDestroyBuffer(logical_device, vertex_buffer, nullptr);
     vkFreeMemory(logical_device, vertex_buffer_memory, nullptr);
+
+    cleanup_acceleration_structure(logical_device, blas_buffer, blas_buffer_memory, blas);
+    cleanup_acceleration_structure(logical_device, tlas_buffer, tlas_buffer_memory, tlas);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(logical_device, uniform_buffers[i], nullptr);

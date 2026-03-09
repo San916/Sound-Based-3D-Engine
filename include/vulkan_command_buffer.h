@@ -15,5 +15,7 @@ void draw_command_buffer(
     VkPipeline& graphics_pipeline, VkCommandBuffer& command_buffer
 );
 void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue graphics_queue, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+void begin_single_time_command(VkDevice logical_device, VkCommandPool command_pool, VkCommandBuffer& command_buffer);
+void finish_single_time_command(VkDevice logical_device, VkQueue queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer);
 
 #endif

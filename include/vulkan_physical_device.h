@@ -16,14 +16,7 @@ typedef struct QueueFamilyIndices {
     }
 } QueueFamilyIndices;
 
-const std::vector<const char*> required_device_extensions = {
-    "VK_KHR_swapchain",
-    "VK_KHR_acceleration_structure",
-    "VK_KHR_ray_query",
-    "VK_KHR_deferred_host_operations",
-    "VK_KHR_buffer_device_address",
-    "VK_EXT_descriptor_indexing",
-};
+extern const std::vector<const char*> required_device_extensions;
 
 void setup_physical_device(VkInstance& vk_instance, VkPhysicalDevice& physical_device, VkSurfaceKHR surface, QueueFamilyIndices &queue_family_indices);
 

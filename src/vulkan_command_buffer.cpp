@@ -100,6 +100,19 @@ void draw_command_buffer(
 // MODIFIES: dst_buffer
 // EFFECTS: Uses given command pool to create a command buffer to transfer memory from src to dst buffers
 void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue graphics_queue, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) {
+    VkCommandBuffer command_buffer;
+    begin_single_time_command(logical_device, command_pool, command_buffer);
+
+    VkBufferCopy copy_region{};
+    copy_region.size = size;
+    vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+    finish_single_time_command(logical_device, graphics_queue, command_pool, command_buffer);
+}
+
+// MODIFIES: command_buffer
+// EFFECTS: Creates, allocates, and begins a command buffer
+void begin_single_time_command(VkDevice logical_device, VkCommandPool command_pool, VkCommandBuffer& command_buffer) {
     VkCommandBufferAllocateInfo command_buffer_alloc_info{};
     command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     command_buffer_alloc_info.pNext = nullptr;
@@ -107,9 +120,8 @@ void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue gr
     command_buffer_alloc_info.commandPool = command_pool;
     command_buffer_alloc_info.commandBufferCount = 1;
 
-    VkCommandBuffer command_buffer;
     if (vkAllocateCommandBuffers(logical_device, &command_buffer_alloc_info, &command_buffer) != VK_SUCCESS) {
-        throw std::runtime_error("copy_buffer(): Failed to alloccate command buffer!");
+        throw std::runtime_error("begin_single_time_command(): Failed to alloccate command buffer!");
     }
 
     VkCommandBufferBeginInfo command_buffer_begin_info{};
@@ -118,15 +130,15 @@ void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue gr
     command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info) != VK_SUCCESS) {
-        throw std::runtime_error("copy_buffer(): Failed to begin copying command buffer!");
+        throw std::runtime_error("begin_single_time_command(): Failed to begin command buffer!");
     }
+}
 
-    VkBufferCopy copy_region{};
-    copy_region.size = size;
-    vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
-
+// MODIFIES: command_buffer
+// EFFECTS: Submits command buffer to the given queue, blocks while the queue finishes, and frees the command buffer
+void finish_single_time_command(VkDevice logical_device, VkQueue queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer) {
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        throw std::runtime_error("copy_buffer(): Failed to copy command buffer!");
+        throw std::runtime_error("finish_single_time_command(): Failed to end command buffer!");
     }
 
     VkSubmitInfo submit_info{};
@@ -135,10 +147,10 @@ void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue gr
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer;
 
-    if (vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
-        throw std::runtime_error("copy_buffer(): Failed to submit copy command buffer!");
+    if (vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("finish_single_time_command(): Failed to submit command buffer!");
     }
-    vkQueueWaitIdle(graphics_queue);
+    vkQueueWaitIdle(queue);
 
     vkFreeCommandBuffers(logical_device, command_pool, 1, &command_buffer);
 }
