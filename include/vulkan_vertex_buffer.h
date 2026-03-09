@@ -1,8 +1,6 @@
 #ifndef VULKAN_VERTEX_BUFFER_H
 #define VULKAN_VERTEX_BUFFER_H
 
-#include <iostream>
-
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -17,7 +15,9 @@ void get_vertex_attribute_descriptions(std::vector<VkVertexInputAttributeDescrip
 void create_vertex_buffer(
     VkDevice logical_device, 
     VkPhysicalDevice physical_device, 
-    std::vector<Vertex> vertices, 
+    VkCommandPool command_pool, 
+    VkQueue graphics_queue, 
+    const std::vector<Vertex>& vertices, 
     VkBuffer& vertex_buffer, 
     VkDeviceMemory& vertex_buffer_memory
 );

@@ -9,7 +9,7 @@
 // MODIFIES: frame_buffers
 // EFFECTS: Creates a frame buffer for each swap chain image view
 void create_frame_buffers(
-    VkDevice logical_device, std::vector<VkImageView> swap_chain_image_views, 
+    VkDevice logical_device, const std::vector<VkImageView>& swap_chain_image_views, 
     VkExtent2D swap_chain_extent, VkRenderPass render_pass, std::vector<VkFramebuffer>& frame_buffers
 ) {
     frame_buffers.resize(swap_chain_image_views.size());

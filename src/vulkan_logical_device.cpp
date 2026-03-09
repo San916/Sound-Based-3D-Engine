@@ -13,7 +13,13 @@
 // EFFECTS: Sets up logical device
 // Uses physical device and queue family indices to setup logical device
 // Sets graphics and present queue handles with corresponding queue family indices
-void setup_logical_device(VkPhysicalDevice physical_device, VkDevice& logical_device, QueueFamilyIndices queue_family_indices, VkQueue& graphics_queue, VkQueue& present_queue) {
+void setup_logical_device(
+    VkPhysicalDevice physical_device, 
+    VkDevice& logical_device, 
+    const QueueFamilyIndices& queue_family_indices, 
+    VkQueue& graphics_queue, 
+    VkQueue& present_queue
+) {
     std::vector<VkDeviceQueueCreateInfo> device_queue_create_infos;
     std::set<uint32_t> unique_queue_family_indices = {
         queue_family_indices.graphics_family_index.value(),

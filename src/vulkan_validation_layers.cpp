@@ -35,13 +35,13 @@ static bool check_validation_layer_support() {
     uint32_t layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
 
-    std::vector<VkLayerProperties> avaliable_layers(layer_count);
-    vkEnumerateInstanceLayerProperties(&layer_count, avaliable_layers.data());
+    std::vector<VkLayerProperties> available_layers(layer_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
 
     for (const char* layer_name : validation_layers) {
         bool layer_exists = false;
 
-        for (const VkLayerProperties cur_layer : avaliable_layers) {
+        for (const VkLayerProperties cur_layer : available_layers) {
             if (strcmp(layer_name, cur_layer.layerName) == 0) {
                 layer_exists = true;
                 break;
