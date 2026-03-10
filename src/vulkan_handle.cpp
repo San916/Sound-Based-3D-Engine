@@ -13,6 +13,7 @@
 #include <vulkan_index_buffer.h>
 #include <vulkan_logical_device.h>
 #include <vulkan_physical_device.h>
+#include <vulkan_storage_image.h>
 #include <vulkan_swap_chain.h>
 #include <vulkan_uniform_buffer.h>
 #include <vulkan_validation_layers.h>
@@ -165,6 +166,13 @@ VulkanHandle::VulkanHandle() {
     create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, descriptor_set_layout, graphics_pipeline);
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
+    create_storage_image(
+        logical_device, physical_device, 
+        command_pool, graphics_queue, 
+        swap_chain_extent, 
+        storage_image, storage_image_memory, 
+        storage_image_view, storage_image_format
+    );
     create_vertex_buffer(logical_device, physical_device, command_pool, graphics_queue, vertices, vertex_buffer, vertex_buffer_memory);
     create_index_buffer(logical_device, physical_device, command_pool, graphics_queue, indices, index_buffer, index_buffer_memory);
     create_bottom_level_acceleration_structure(
@@ -211,6 +219,8 @@ VulkanHandle::~VulkanHandle() {
 
     vkDestroyBuffer(logical_device, vertex_buffer, nullptr);
     vkFreeMemory(logical_device, vertex_buffer_memory, nullptr);
+
+    cleanup_storage_image(logical_device, storage_image, storage_image_memory, storage_image_view);
 
     cleanup_acceleration_structure(logical_device, tlas_buffer, tlas_buffer_memory, tlas);
     cleanup_acceleration_structure(logical_device, blas_buffer, blas_buffer_memory, blas);

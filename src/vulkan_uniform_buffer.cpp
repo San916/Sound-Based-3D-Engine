@@ -12,18 +12,22 @@
 // EFFECTS: Creates a descriptor set layout and returns it
 // Currently specifies vertex and fragment shader usage
 void create_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& descriptor_set_layout) {
-    VkDescriptorSetLayoutBinding descriptor_set_layout_binding{};
-    descriptor_set_layout_binding.binding = 0;
-    descriptor_set_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptor_set_layout_binding.descriptorCount = 1;
-    descriptor_set_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    descriptor_set_layout_binding.pImmutableSamplers = nullptr;
+    std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings;
+
+    VkDescriptorSetLayoutBinding uniform_buffer_binding{};
+    uniform_buffer_binding.binding = 0;
+    uniform_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniform_buffer_binding.descriptorCount = 1;
+    uniform_buffer_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    uniform_buffer_binding.pImmutableSamplers = nullptr;
+
+    descriptor_set_layout_bindings.push_back(uniform_buffer_binding);
 
     VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{};
     descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     descriptor_set_layout_create_info.pNext = nullptr;
     descriptor_set_layout_create_info.bindingCount = 1;
-    descriptor_set_layout_create_info.pBindings = &descriptor_set_layout_binding;
+    descriptor_set_layout_create_info.pBindings = descriptor_set_layout_bindings.data();
 
     if (vkCreateDescriptorSetLayout(logical_device, &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout) != VK_SUCCESS) {
         throw std::runtime_error("create_descriptor_set_layout(): Failed to create descriptor set layout!");

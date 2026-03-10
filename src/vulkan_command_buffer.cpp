@@ -136,7 +136,7 @@ void begin_single_time_command(VkDevice logical_device, VkCommandPool command_po
 
 // MODIFIES: command_buffer
 // EFFECTS: Submits command buffer to the given queue, blocks while the queue finishes, and frees the command buffer
-void finish_single_time_command(VkDevice logical_device, VkQueue queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer) {
+void finish_single_time_command(VkDevice logical_device, VkQueue graphics_queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer) {
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         throw std::runtime_error("finish_single_time_command(): Failed to end command buffer!");
     }
@@ -147,10 +147,10 @@ void finish_single_time_command(VkDevice logical_device, VkQueue queue, VkComman
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer;
 
-    if (vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
+    if (vkQueueSubmit(graphics_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
         throw std::runtime_error("finish_single_time_command(): Failed to submit command buffer!");
     }
-    vkQueueWaitIdle(queue);
+    vkQueueWaitIdle(graphics_queue);
 
     vkFreeCommandBuffers(logical_device, command_pool, 1, &command_buffer);
 }

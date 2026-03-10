@@ -1,11 +1,12 @@
 #include <iostream>
+#include <cstdint>
 
 #include <vulkan/vulkan.h>
 
 #include <vulkan_utils.h>
 
 // EFFECTS: Gets memory properties of given physical_device and returns an index, if exists, where it's both compatible and has the right properties
-static uint32_t get_memory_type(VkPhysicalDevice physical_device, uint32_t compatible_types, VkMemoryPropertyFlags properties) {
+uint32_t get_memory_type(VkPhysicalDevice physical_device, uint32_t compatible_types, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memory_properties;
     vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
 

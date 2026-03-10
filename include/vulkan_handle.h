@@ -64,6 +64,11 @@ private:
     VkDeviceMemory tlas_buffer_memory;
     VkAccelerationStructureKHR tlas;
 
+    VkImage storage_image;
+    VkDeviceMemory storage_image_memory;
+    VkImageView storage_image_view;
+    VkFormat storage_image_format;
+
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
     std::vector<void*> uniform_buffers_mapped;

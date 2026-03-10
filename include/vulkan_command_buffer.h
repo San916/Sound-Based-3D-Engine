@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 
 void create_command_pool(VkDevice logical_device, uint32_t graphics_queue_family_index, VkCommandPool& command_pool);
@@ -16,6 +18,6 @@ void draw_command_buffer(
 );
 void copy_buffer(VkDevice logical_device, VkCommandPool command_pool, VkQueue graphics_queue, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
 void begin_single_time_command(VkDevice logical_device, VkCommandPool command_pool, VkCommandBuffer& command_buffer);
-void finish_single_time_command(VkDevice logical_device, VkQueue queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer);
+void finish_single_time_command(VkDevice logical_device, VkQueue graphics_queue, VkCommandPool command_pool, VkCommandBuffer& command_buffer);
 
 #endif
