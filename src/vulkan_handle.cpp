@@ -212,8 +212,8 @@ VulkanHandle::~VulkanHandle() {
     vkDestroyBuffer(logical_device, vertex_buffer, nullptr);
     vkFreeMemory(logical_device, vertex_buffer_memory, nullptr);
 
-    cleanup_acceleration_structure(logical_device, blas_buffer, blas_buffer_memory, blas);
     cleanup_acceleration_structure(logical_device, tlas_buffer, tlas_buffer_memory, tlas);
+    cleanup_acceleration_structure(logical_device, blas_buffer, blas_buffer_memory, blas);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(logical_device, uniform_buffers[i], nullptr);
