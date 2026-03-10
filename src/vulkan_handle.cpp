@@ -8,6 +8,8 @@
 
 #include <vulkan_acceleration_structure.h>
 #include <vulkan_command_buffer.h>
+#include <vulkan_compute_pipeline.h>
+#include <vulkan_descriptor_sets.h>
 #include <vulkan_frame_buffer.h>
 #include <vulkan_graphics_pipeline.h>
 #include <vulkan_index_buffer.h>
@@ -106,7 +108,7 @@ void VulkanHandle::draw_frame() {
     draw_command_buffer(
         render_pass, frame_buffers, swap_chain_extent, 
         swap_chain_image_index, frame_index, pipeline_layout, 
-        descriptor_sets, vertex_buffer, index_buffer, indices,
+        graphics_descriptor_sets, vertex_buffer, index_buffer, indices,
         graphics_pipeline, command_buffer
     );
 
@@ -162,8 +164,9 @@ VulkanHandle::VulkanHandle() {
     setup_logical_device(physical_device, logical_device, queue_family_indices, graphics_queue, present_queue);
     create_swap_chain(window, surface, physical_device, logical_device, queue_family_indices, swap_chain, swap_chain_images, swap_chain_image_format, swap_chain_extent);
     create_swap_chain_image_views(logical_device, swap_chain_images, swap_chain_image_views, swap_chain_image_format);
-    create_descriptor_set_layout(logical_device, descriptor_set_layout);
-    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, descriptor_set_layout, graphics_pipeline);
+    create_graphics_descriptor_set_layout(logical_device, graphics_descriptor_set_layout);
+    create_compute_descriptor_set_layout(logical_device, compute_descriptor_set_layout);
+    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, graphics_descriptor_set_layout, graphics_pipeline);
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
     create_storage_image(
@@ -192,8 +195,27 @@ VulkanHandle::VulkanHandle() {
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
     );
-    create_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool);
-    create_descriptor_sets(logical_device, MAX_FRAMES_IN_FLIGHT, descriptor_pool, uniform_buffers, descriptor_set_layout, descriptor_sets);
+    create_graphics_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, graphics_descriptor_pool);
+    create_compute_descriptor_pool(logical_device, 1, compute_descriptor_pool);
+    create_graphics_descriptor_sets(
+        logical_device, 
+        MAX_FRAMES_IN_FLIGHT, 
+        graphics_descriptor_pool, 
+        uniform_buffers, 
+        storage_image_sampler, 
+        storage_image_view, 
+        graphics_descriptor_set_layout, 
+        graphics_descriptor_sets
+    );
+    create_compute_descriptor_sets(
+        logical_device, 
+        1, 
+        compute_descriptor_pool, 
+        tlas, 
+        storage_image_view, 
+        compute_descriptor_set_layout, 
+        compute_descriptor_sets
+    );
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
@@ -230,9 +252,13 @@ VulkanHandle::~VulkanHandle() {
         vkFreeMemory(logical_device, uniform_buffers_memory[i], nullptr);
     }
 
-    vkDestroyDescriptorPool(logical_device, descriptor_pool, nullptr);
-    vkDestroyDescriptorSetLayout(logical_device, descriptor_set_layout, nullptr);
+    vkDestroyDescriptorPool(logical_device, compute_descriptor_pool, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, compute_descriptor_set_layout, nullptr);
+    vkDestroyDescriptorPool(logical_device, graphics_descriptor_pool, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, graphics_descriptor_set_layout, nullptr);
     vkDestroyCommandPool(logical_device, command_pool, nullptr);
+    
+    vkDestroySampler(logical_device, storage_image_sampler, nullptr);
 
     for (VkFramebuffer frame_buffer : frame_buffers) {
         vkDestroyFramebuffer(logical_device, frame_buffer, nullptr);

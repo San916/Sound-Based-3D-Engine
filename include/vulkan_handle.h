@@ -30,12 +30,17 @@ private:
 
     std::vector<VkFramebuffer> frame_buffers;
 
-    VkDescriptorPool descriptor_pool;
-    std::vector<VkDescriptorSet> descriptor_sets;
-    VkDescriptorSetLayout descriptor_set_layout;
+    VkDescriptorPool graphics_descriptor_pool;
+    std::vector<VkDescriptorSet> graphics_descriptor_sets;
+    VkDescriptorSetLayout graphics_descriptor_set_layout;
     VkPipelineLayout pipeline_layout;
     VkRenderPass render_pass;
     VkPipeline graphics_pipeline;
+
+    VkDescriptorPool compute_descriptor_pool;
+    std::vector<VkDescriptorSet> compute_descriptor_sets;
+    VkDescriptorSetLayout compute_descriptor_set_layout;
+    VkPipeline compute_pipeline;
 
     VkCommandPool command_pool;
     std::vector<VkCommandBuffer> command_buffers;
@@ -68,6 +73,7 @@ private:
     VkDeviceMemory storage_image_memory;
     VkImageView storage_image_view;
     VkFormat storage_image_format;
+    VkSampler storage_image_sampler;
 
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;

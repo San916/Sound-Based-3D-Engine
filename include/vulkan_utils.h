@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <string>
+
 #include <vulkan/vulkan.h>
 
 uint32_t get_memory_type(VkPhysicalDevice physical_device, uint32_t compatible_types, VkMemoryPropertyFlags properties);
@@ -15,5 +17,7 @@ void create_buffer(
     VkBuffer& buffer,
     VkDeviceMemory& buffer_memory
 );
+VkShaderModule create_shader_module(VkDevice logical_device, const std::vector<char>& shader_code);
+std::vector<char> read_file(const std::string& file_name);
 
 #endif
