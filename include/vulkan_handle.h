@@ -1,6 +1,8 @@
 #ifndef VULKAN_HANDLE_H
 #define VULKAN_HANDLE_H
 
+#include <cstdint>
+
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -33,30 +35,72 @@ private:
     VkDescriptorPool graphics_descriptor_pool;
     std::vector<VkDescriptorSet> graphics_descriptor_sets;
     VkDescriptorSetLayout graphics_descriptor_set_layout;
-    VkPipelineLayout pipeline_layout;
     VkRenderPass render_pass;
+    VkPipelineLayout graphics_pipeline_layout;
     VkPipeline graphics_pipeline;
 
     VkDescriptorPool compute_descriptor_pool;
     std::vector<VkDescriptorSet> compute_descriptor_sets;
     VkDescriptorSetLayout compute_descriptor_set_layout;
+    VkPipelineLayout compute_pipeline_layout;
     VkPipeline compute_pipeline;
+
+    const VkExtent2D dispatch_group_size = {16, 16};
 
     VkCommandPool command_pool;
     std::vector<VkCommandBuffer> command_buffers;
 
+    // Hardcoded scene geometry
     std::vector<Vertex> vertices = {
-        {{0.0f, -0.5f, 0.0f}},
-        {{0.5f, 0.5f, 0.0f}},
-        {{-0.5f, 0.5f, 0.0f}},
-        {{-1.0f, -0.5f, 0.0f}},
+        // Floor
+        {{-2.0f, -1.0f, -5.0f}},
+        {{ 2.0f, -1.0f, -5.0f}},
+        {{ 2.0f, -1.0f, 4.0f}},
+        {{-2.0f, -1.0f, 4.0f}},
+
+        // Ceiling
+        {{-2.0f,  1.0f, -5.0f}},
+        {{ 2.0f,  1.0f, -5.0f}},
+        {{ 2.0f,  1.0f, 4.0f}},
+        {{-2.0f,  1.0f, 4.0f}},
+
+        // Left wall
+        {{-2.0f, -1.0f, -5.0f}},
+        {{-2.0f,  1.0f, -5.0f}},
+        {{-2.0f,  1.0f, 4.0f}},
+        {{-2.0f, -1.0f, 4.0f}},
+
+        // Right wall
+        {{ 2.0f, -1.0f, -5.0f}},
+        {{ 2.0f,  1.0f, -5.0f}},
+        {{ 2.0f,  1.0f, 4.0f}},
+        {{ 2.0f, -1.0f, 4.0f}},
+
+        // Back wall
+        {{-2.0f, -1.0f, 2.0f}},
+        {{ 2.0f, -1.0f, 2.0f}},
+        {{ 2.0f,  1.0f, 2.0f}},
+        {{-2.0f,  1.0f, 2.0f}},
     };
     VkBuffer vertex_buffer;
     VkDeviceMemory vertex_buffer_memory;
 
     std::vector<uint32_t> indices = {
+        // Floor
         0, 1, 2,
         0, 2, 3,
+        // Ceiling
+        4, 6, 5,
+        4, 7, 6,
+        // Left wall
+        8, 10, 9,
+        8, 11, 10,
+        // Right wall
+        12, 13, 14,
+        12, 14, 15,
+        // Back wall
+        16, 17, 18, 
+        16, 18, 19,
     };
     VkBuffer index_buffer;
     VkDeviceMemory index_buffer_memory;

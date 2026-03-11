@@ -23,6 +23,6 @@ void create_uniform_buffers(
     std::vector<VkDeviceMemory>& uniform_buffers_memory,
     std::vector<void*>& uniform_buffers_mapped
 );
-void update_uniform_buffer(uint32_t frame_index, std::vector<void*>& uniform_buffers_mapped);
+void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, std::vector<void*>& uniform_buffers_mapped);
 
 #endif

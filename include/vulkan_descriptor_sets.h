@@ -25,6 +25,7 @@ void create_compute_descriptor_sets(
     VkDescriptorPool compute_descriptor_pool, 
     const VkAccelerationStructureKHR& tlas, 
     const VkImageView storage_image_view, 
+    const std::vector<VkBuffer>& uniform_buffers, 
     const VkDescriptorSetLayout& compute_descriptor_set_layout, 
     std::vector<VkDescriptorSet>& compute_descriptor_sets
 );

@@ -42,11 +42,16 @@ void create_uniform_buffers(
 
 // MODIFIES: uniform_buffers_mapped
 // EFFECTS: Copies the current uniform buffer to the uniform buffers mapped memory
-void update_uniform_buffer(uint32_t frame_index, std::vector<void*>& uniform_buffers_mapped) {
+//     Currently uses a hardcoded camera position and direction
+void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, std::vector<void*>& uniform_buffers_mapped) {
     UniformBufferObject uniform_buffer{};
     uniform_buffer.model = glm::mat4(1.0f);
-    uniform_buffer.view = glm::mat4(1.0f);
-    uniform_buffer.proj = glm::mat4(1.0f);
+
+    glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, -2.0f);
+    uniform_buffer.view = glm::lookAt(camera_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    uniform_buffer.proj = glm::perspective(glm::radians(75.0f), swap_chain_extent.width / (float)swap_chain_extent.height, 0.100f, 1000.0f);
+    uniform_buffer.proj[1][1] *= -1;
+    uniform_buffer.position = glm::vec4(camera_pos, 1.0f);
 
     memcpy(uniform_buffers_mapped[frame_index], &uniform_buffer, sizeof(uniform_buffer));
 }

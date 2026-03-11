@@ -99,15 +99,23 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
-    update_uniform_buffer(frame_index, uniform_buffers_mapped);
+    update_uniform_buffer(frame_index, swap_chain_extent, uniform_buffers_mapped);
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
     VkCommandBuffer command_buffer = command_buffers[frame_index];
     vkResetCommandBuffer(command_buffer, 0);
+
+    VkCommandBuffer compute_command_buffer;
+    begin_single_time_command(logical_device, command_pool, compute_command_buffer);
+    vkCmdBindPipeline(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
+    vkCmdBindDescriptorSets(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &compute_descriptor_sets[frame_index], 0, nullptr);
+    vkCmdDispatch(compute_command_buffer, swap_chain_extent.width / dispatch_group_size.width, swap_chain_extent.height / dispatch_group_size.height, 1);
+    finish_single_time_command(logical_device, graphics_queue, command_pool, compute_command_buffer);
+
     draw_command_buffer(
         render_pass, frame_buffers, swap_chain_extent, 
-        swap_chain_image_index, frame_index, pipeline_layout, 
+        swap_chain_image_index, frame_index, graphics_pipeline_layout, 
         graphics_descriptor_sets, vertex_buffer, index_buffer, indices,
         graphics_pipeline, command_buffer
     );
@@ -166,7 +174,8 @@ VulkanHandle::VulkanHandle() {
     create_swap_chain_image_views(logical_device, swap_chain_images, swap_chain_image_views, swap_chain_image_format);
     create_graphics_descriptor_set_layout(logical_device, graphics_descriptor_set_layout);
     create_compute_descriptor_set_layout(logical_device, compute_descriptor_set_layout);
-    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, pipeline_layout, render_pass, graphics_descriptor_set_layout, graphics_pipeline);
+    create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, render_pass, graphics_descriptor_set_layout, graphics_pipeline_layout, graphics_pipeline);
+    create_compute_pipeline(logical_device, compute_descriptor_set_layout, compute_pipeline_layout, compute_pipeline);
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
     create_storage_image(
@@ -196,7 +205,7 @@ VulkanHandle::VulkanHandle() {
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
     );
     create_graphics_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, graphics_descriptor_pool);
-    create_compute_descriptor_pool(logical_device, 1, compute_descriptor_pool);
+    create_compute_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, compute_descriptor_pool);
     create_graphics_descriptor_sets(
         logical_device, 
         MAX_FRAMES_IN_FLIGHT, 
@@ -209,10 +218,11 @@ VulkanHandle::VulkanHandle() {
     );
     create_compute_descriptor_sets(
         logical_device, 
-        1, 
+        MAX_FRAMES_IN_FLIGHT, 
         compute_descriptor_pool, 
         tlas, 
         storage_image_view, 
+        uniform_buffers, 
         compute_descriptor_set_layout, 
         compute_descriptor_sets
     );
@@ -232,8 +242,11 @@ VulkanHandle::~VulkanHandle() {
         vkDestroySemaphore(logical_device, render_semaphores[i], nullptr);    
     }
 
+    vkDestroyPipeline(logical_device, compute_pipeline, nullptr);
+    vkDestroyPipelineLayout(logical_device, compute_pipeline_layout, nullptr);
+
     vkDestroyPipeline(logical_device, graphics_pipeline, nullptr);
-    vkDestroyPipelineLayout(logical_device, pipeline_layout, nullptr);
+    vkDestroyPipelineLayout(logical_device, graphics_pipeline_layout, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);
 
     vkDestroyBuffer(logical_device, index_buffer, nullptr);

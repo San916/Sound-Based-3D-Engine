@@ -164,10 +164,10 @@ static void create_render_pass(VkDevice logical_device, VkFormat swap_chain_imag
 // MODIFIES: pipeline_layout, render_pass, graphics_pipeline
 // EFFECTS: Creates graphics pipeline and returns pipeline_layout, render_pass, and graphics_pipeline
 void create_graphics_pipeline(
-    VkDevice logical_device,
-    VkExtent2D swap_chain_extent, VkFormat swap_chain_image_format,
-    VkPipelineLayout& pipeline_layout, VkRenderPass& render_pass, 
-    VkDescriptorSetLayout descriptor_set_layout, VkPipeline& graphics_pipeline
+    VkDevice logical_device, 
+    VkExtent2D swap_chain_extent, VkFormat swap_chain_image_format, 
+    VkRenderPass& render_pass, VkDescriptorSetLayout descriptor_set_layout, 
+    VkPipelineLayout& pipeline_layout, VkPipeline& graphics_pipeline
 ) {
     std::vector<char> vert_shader_code = read_file("./../assets/shaders/shader_vert.spv");
     std::vector<char> frag_shader_code = read_file("./../assets/shaders/shader_frag.spv");

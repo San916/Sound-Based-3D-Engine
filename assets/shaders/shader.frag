@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
@@ -7,10 +7,13 @@ layout(binding = 0) uniform UniformBufferObject {
     vec4 position;
 } ubo;
 
+layout(binding = 1) uniform sampler2D storage_image;
+
 layout(location = 1) in vec3 fragColor;
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = vec4(fragColor, 1.0);
+    vec2 uv = gl_FragCoord.xy / vec2(textureSize(storage_image, 0));
+    outColor = texture(storage_image, uv);
 }
