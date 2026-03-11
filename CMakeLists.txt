@@ -37,7 +37,6 @@ set(SOURCES
     src/main.cpp
     src/vulkan_acceleration_structure.cpp
     src/vulkan_command_buffer.cpp
-    src/vulkan_compute_pipeline.cpp
     src/vulkan_descriptor_sets.cpp
     src/vulkan_frame_buffer.cpp
     src/vulkan_graphics_pipeline.cpp
