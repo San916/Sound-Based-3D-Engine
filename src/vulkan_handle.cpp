@@ -30,6 +30,30 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
+void VulkanHandle::mouse_callback(GLFWwindow* window, double x_pos, double y_pos) {
+    VulkanHandle* handle = static_cast<VulkanHandle*>(glfwGetWindowUserPointer(window));
+
+    float x = static_cast<float>(x_pos);
+    float y = static_cast<float>(y_pos);
+
+    if (!handle->initial_mouse_position_set) {
+        handle->last_mouse_position = {x, y};
+        handle->initial_mouse_position_set = true;
+        return;
+    }
+
+    const float sensitivity = 0.05f;
+    float x_offset = (x - handle->last_mouse_position.x) * sensitivity;
+    float y_offset = (handle->last_mouse_position.y - y) * sensitivity;
+    handle->last_mouse_position = {x, y};
+
+    handle->camera_rotation.x += x_offset;
+    handle->camera_rotation.y += y_offset;
+
+    if (handle->camera_rotation.y >  89.0f) handle->camera_rotation.y =  89.0f;
+    if (handle->camera_rotation.y < -89.0f) handle->camera_rotation.y = -89.0f;
+}
+
 void VulkanHandle::init_vulkan() {
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -99,7 +123,7 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
-    update_uniform_buffer(frame_index, swap_chain_extent, uniform_buffers_mapped);
+    update_uniform_buffer(frame_index, swap_chain_extent, camera_position, camera_rotation, uniform_buffers_mapped);
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
@@ -160,7 +184,7 @@ void VulkanHandle::draw_frame() {
 }
 
 VulkanHandle::VulkanHandle() {
-    setup_window(window);
+    setup_window(window, this, mouse_callback);
     init_vulkan();
     if (enable_validation_layers) {
         setup_debug_messenger(vk_instance, debug_messenger);
@@ -293,9 +317,53 @@ VulkanHandle::~VulkanHandle() {
 
 void VulkanHandle::run() {
     while(!glfwWindowShouldClose(window)) {
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        const bool flying = false;
+
+        glm::vec3 forward;
+        glm::vec3 right;
+
+        if (flying) {
+            forward.x = cos(glm::radians(camera_rotation.x)) * cos(glm::radians(camera_rotation.y));
+            forward.y = sin(glm::radians(camera_rotation.y));
+            forward.z = sin(glm::radians(camera_rotation.x)) * cos(glm::radians(camera_rotation.y));
+            right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+        } else {
+            forward.x = cos(glm::radians(camera_rotation.x));
+            forward.y = 0;
+            forward.z = sin(glm::radians(camera_rotation.x));
+            right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
         }
+
+
+        const float move_speed = 0.001f;
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            camera_position += forward * move_speed;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            camera_position -= forward * move_speed;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            camera_position += right * move_speed;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            camera_position -= right * move_speed;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            if (flying) {
+                camera_position.y += move_speed;
+            }
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            if (flying) {
+                camera_position.y -= move_speed;
+            }
+        }
+
         glfwPollEvents();
         draw_frame();
     }

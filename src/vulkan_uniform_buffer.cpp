@@ -42,16 +42,21 @@ void create_uniform_buffers(
 
 // MODIFIES: uniform_buffers_mapped
 // EFFECTS: Copies the current uniform buffer to the uniform buffers mapped memory
-//     Currently uses a hardcoded camera position and direction
-void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, std::vector<void*>& uniform_buffers_mapped) {
+//     Sets the view matrix using the given camera position and rotation
+void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, glm::vec3 camera_position, glm::vec2 camera_rotation, std::vector<void*>& uniform_buffers_mapped) {
     UniformBufferObject uniform_buffer{};
     uniform_buffer.model = glm::mat4(1.0f);
 
-    glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, -2.0f);
-    uniform_buffer.view = glm::lookAt(camera_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 camera_direction;
+    camera_direction.x = cos(glm::radians(camera_rotation.x)) * cos(glm::radians(camera_rotation.y));
+    camera_direction.y = sin(glm::radians(camera_rotation.y));
+    camera_direction.z = sin(glm::radians(camera_rotation.x)) * cos(glm::radians(camera_rotation.y));
+
+    glm::vec3 camera_target = camera_position + camera_direction;
+    uniform_buffer.view = glm::lookAt(camera_position, camera_target, glm::vec3(0.0f, 1.0f, 0.0f));
     uniform_buffer.proj = glm::perspective(glm::radians(75.0f), swap_chain_extent.width / (float)swap_chain_extent.height, 0.100f, 1000.0f);
     uniform_buffer.proj[1][1] *= -1;
-    uniform_buffer.position = glm::vec4(camera_pos, 1.0f);
+    uniform_buffer.position = glm::vec4(camera_position, 1.0f);
 
     memcpy(uniform_buffers_mapped[frame_index], &uniform_buffer, sizeof(uniform_buffer));
 }

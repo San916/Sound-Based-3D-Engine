@@ -59,9 +59,10 @@ void main() {
 
     if (rayQueryGetIntersectionTypeEXT(ray_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT) {
         float dist = rayQueryGetIntersectionTEXT(ray_query, true);
-        float intensity = clamp(2.0 / (dist * dist), 0.0, 1.0);
+
 
         // A design that uses lines instead of dots
+        // float intensity = clamp(2.0 / (dist * dist), 0.0, 1.0);
         // float scaled = intensity * 50.0;
         // int bucket = int(floor(scaled));
         // float diff = scaled - float(bucket);
@@ -74,7 +75,7 @@ void main() {
         float grid_size = max(1.0, dist * 2.0);
         int grid = int(grid_size);
         if (viewport_pos.x % grid < 2 && viewport_pos.y % grid < 2) {
-            float intensity = clamp(2.0 / (dist * dist), 0.0, 1.0);
+            float intensity = clamp(2.0 / (dist * dist), 0.0, 1.0) / 2;
             color = vec4(intensity, intensity, intensity, 1.0);
         }
     }

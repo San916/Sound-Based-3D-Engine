@@ -23,6 +23,6 @@ void create_uniform_buffers(
     std::vector<VkDeviceMemory>& uniform_buffers_memory,
     std::vector<void*>& uniform_buffers_mapped
 );
-void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, std::vector<void*>& uniform_buffers_mapped);
+void update_uniform_buffer(uint32_t frame_index, VkExtent2D swap_chain_extent, glm::vec3 camera_position, glm::vec2 camera_rotation, std::vector<void*>& uniform_buffers_mapped);
 
 #endif
