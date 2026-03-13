@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 
 #include <vulkan/vulkan.h>
@@ -317,7 +318,12 @@ VulkanHandle::~VulkanHandle() {
 }
 
 void VulkanHandle::run() {
+    auto previous_time = std::chrono::high_resolution_clock::now();
     while(!glfwWindowShouldClose(window)) {
+        auto current_time = std::chrono::high_resolution_clock::now();
+        float delta_time = std::chrono::duration<float>(current_time - previous_time).count();
+        previous_time = current_time;
+
         const bool flying = false;
 
         glm::vec3 forward;
@@ -336,7 +342,7 @@ void VulkanHandle::run() {
         }
 
 
-        const float move_speed = 0.001f;
+        const float move_speed = delta_time * 2.0f;
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera_position += forward * move_speed;
         }
@@ -366,7 +372,7 @@ void VulkanHandle::run() {
         }
 
         for  (size_t i = 0; i < sound_waves.size(); i++) {
-            sound_waves[i].w += 0.003f;
+            sound_waves[i].w += delta_time * 6.0f;
         }
         sound_waves.erase(
             std::remove_if(sound_waves.begin(), sound_waves.end(), 
