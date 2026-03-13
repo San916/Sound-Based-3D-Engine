@@ -31,17 +31,7 @@ vec3 get_ray_dir(ivec2 viewport_pos, ivec2 image_size) {
     return ray_dir;
 }
 
-void main() {
-    ivec2 viewport_pos = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 image_size = imageSize(storage_image);
-
-    if (viewport_pos.x >= image_size.x || viewport_pos.y >= image_size.y) {
-        return;
-    }
-
-    vec3 ray_dir = get_ray_dir(viewport_pos, image_size);
-    vec3 ray_origin = ubo.position.xyz;
-
+float get_ray_hit(vec3 ray_origin, vec3 ray_dir) {
     rayQueryEXT ray_query;
     rayQueryInitializeEXT(
         ray_query, 
@@ -54,16 +44,56 @@ void main() {
         1000.0
     );
 
-    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-
     while (rayQueryProceedEXT(ray_query)) {};
 
     if (rayQueryGetIntersectionTypeEXT(ray_query, true) != gl_RayQueryCommittedIntersectionTriangleEXT) {
+        return -1.0;
+    }
+
+    return rayQueryGetIntersectionTEXT(ray_query, true);
+}
+
+bool is_ray_obstructed(vec3 ray_origin, vec3 ray_target) {
+    vec3 ray_dir = ray_target - ray_origin;
+    float dist = length(ray_dir);
+
+    rayQueryEXT ray_query;
+    rayQueryInitializeEXT(
+        ray_query, 
+        tlas, 
+        gl_RayFlagsNoneEXT, 
+        0xFF, 
+        ray_origin, 
+        0.001, 
+        normalize(ray_dir), 
+        dist - 0.01
+    );
+
+    while (rayQueryProceedEXT(ray_query)) {};
+
+    return rayQueryGetIntersectionTypeEXT(ray_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
+}
+
+void main() {
+    ivec2 viewport_pos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 image_size = imageSize(storage_image);
+
+    if (viewport_pos.x >= image_size.x || viewport_pos.y >= image_size.y) {
+        return;
+    }
+
+    vec3 ray_origin = ubo.position.xyz;
+    vec3 ray_dir = get_ray_dir(viewport_pos, image_size);
+
+    float dist_from_surface = get_ray_hit(ray_origin, ray_dir);
+
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+
+    if (dist_from_surface < 0.0) {
         imageStore(storage_image, viewport_pos, color);
         return;
     }
 
-    float dist_from_surface = rayQueryGetIntersectionTEXT(ray_query, true);
     vec3 hit_point = ray_origin + dist_from_surface * ray_dir;
 
     float intensity = 0.0;
@@ -72,10 +102,14 @@ void main() {
         if (wave_radius < 0.0) continue;
         vec3 wave_origin = ubo.sound_waves[i].xyz;
 
-        if (abs(dist_from_surface - wave_radius) > 1.0) continue;
+        vec3 surface_to_source = wave_origin - hit_point;
+        float dist_to_source = length(surface_to_source);
 
-        float round_trip_dist = length(hit_point - wave_origin) + dist_from_surface;
+        float round_trip_dist = dist_to_source + dist_from_surface;
         round_trip_dist /= 2;
+        if (abs(round_trip_dist - wave_radius) > 1.0) continue;
+
+        if (is_ray_obstructed(hit_point, wave_origin)) continue;
 
         intensity += clamp(2.0 / (round_trip_dist * round_trip_dist), 0.0, 1.0);
     }
