@@ -8,11 +8,11 @@ layout(binding = 0) uniform accelerationStructureEXT tlas;
 layout(binding = 1, rgba8) uniform image2D storage_image;
 
 layout(binding = 2) uniform UniformBufferObject {
-    mat4 model;
+    mat4 model[16];
     mat4 view;
     mat4 proj;
     vec4 position;
-    vec4 sound_waves[8];
+    vec4 sound_waves[16];
 } ubo;
 
 vec3 get_ray_dir(ivec2 viewport_pos, ivec2 image_size) {
@@ -97,7 +97,7 @@ void main() {
     vec3 hit_point = ray_origin + dist_from_surface * ray_dir;
 
     float intensity = 0.0;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 16; i++) {
         float wave_radius = ubo.sound_waves[i].w;
         if (wave_radius < 0.0) continue;
         vec3 wave_origin = ubo.sound_waves[i].xyz;

@@ -45,15 +45,18 @@ void create_uniform_buffers(
 // EFFECTS: Copies the current uniform buffer to the uniform buffers mapped memory
 //     Sets the view matrix using the given camera position and rotation
 void update_uniform_buffer(
-    uint32_t frame_index, 
-    VkExtent2D swap_chain_extent, 
-    glm::vec3 camera_position, 
-    glm::vec2 camera_rotation, 
-    const std::vector<glm::vec4>& sound_waves, 
+    uint32_t frame_index,
+    VkExtent2D swap_chain_extent,
+    const std::vector<glm::mat4>& transforms,
+    glm::vec3 camera_position,
+    glm::vec2 camera_rotation,
+    const std::vector<glm::vec4>& sound_waves,
     std::vector<void*>& uniform_buffers_mapped
 ) {
     UniformBufferObject uniform_buffer{};
-    uniform_buffer.model = glm::mat4(1.0f);
+    for (size_t i = 0; i < transforms.size() && i < MAX_OBJECTS; i++) {
+        uniform_buffer.model[i] = transforms[i];
+    }
 
     glm::vec3 camera_direction;
     camera_direction.x = cos(glm::radians(camera_rotation.x)) * cos(glm::radians(camera_rotation.y));

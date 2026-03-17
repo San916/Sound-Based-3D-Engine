@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include <vulkan_command_buffer.h>
+#include <vulkan_object.h>
 
 // MODIFIES: command_pool
 // EFFECTS: Creates a command pool and returns it
@@ -43,10 +44,10 @@ void create_command_buffers(VkDevice logical_device, VkCommandPool command_pool,
 // EFFECTS: Records into command_buffer the command to draw into a frame buffer
 // Inserts operation into graphics pipeline
 void draw_command_buffer(
-    VkRenderPass render_pass, const std::vector<VkFramebuffer>& frame_buffers, 
+    VkRenderPass render_pass, const std::vector<VkFramebuffer>& frame_buffers,
     VkExtent2D swap_chain_extent, size_t swap_chain_image_index, size_t frame_index,
     VkPipelineLayout pipeline_layout, const std::vector<VkDescriptorSet>& descriptor_sets,
-    VkBuffer vertex_buffer, VkBuffer index_buffer, const std::vector<uint32_t>& indices, 
+    const std::vector<VulkanObject*>& objects,
     VkPipeline& graphics_pipeline, VkCommandBuffer& command_buffer
 ) {
     if (swap_chain_image_index >= frame_buffers.size()) {
@@ -78,17 +79,16 @@ void draw_command_buffer(
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
 
-    // Drawing should happen here
-    VkBuffer vertex_buffers[] = {vertex_buffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+    for (int i = 0; i < objects.size(); i++) {
+        VkBuffer vertex_buffers[] = {objects[i]->get_vertex_buffer()};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+        vkCmdBindIndexBuffer(command_buffer, objects[i]->get_index_buffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[frame_index], 0, nullptr);
+        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(int), &i);
+        vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(objects[i]->get_indices().size()), 1, 0, 0, 0);
+    }
 
-    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
-
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[frame_index], 0, nullptr);
-
-    vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-    //
 
     vkCmdEndRenderPass(command_buffer);
 

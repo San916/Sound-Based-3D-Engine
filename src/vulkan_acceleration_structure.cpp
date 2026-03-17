@@ -192,38 +192,38 @@ void create_bottom_level_acceleration_structure(
 }
 
 // MODIFIES: instance_buffer, instance_buffer_memory
-// EFFECTS: Given the tlas_instance, write it into device memory, returning instance_buffer and instance_buffer_memory
+// EFFECTS: Given an array of tlas_instances, writes them into a single device memory buffer
 static void create_instance_buffer(
-    VkDevice logical_device, VkPhysicalDevice physical_device, 
-    VkCommandPool command_pool, VkQueue graphics_queue, 
-    const VkAccelerationStructureInstanceKHR& tlas_instance, 
+    VkDevice logical_device, VkPhysicalDevice physical_device,
+    VkCommandPool command_pool, VkQueue graphics_queue,
+    const std::vector<VkAccelerationStructureInstanceKHR>& tlas_instances,
     VkBuffer& instance_buffer, VkDeviceMemory& instance_buffer_memory
 ) {
-    VkDeviceSize buffer_size = sizeof(VkAccelerationStructureInstanceKHR);
+    VkDeviceSize buffer_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instances.size();
     VkBuffer staging_buffer;
     VkDeviceMemory staging_buffer_memory;
     create_buffer(
-        logical_device, 
-        physical_device, 
-        buffer_size, 
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-        staging_buffer, 
+        logical_device,
+        physical_device,
+        buffer_size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        staging_buffer,
         staging_buffer_memory
     );
     void* data;
     vkMapMemory(logical_device, staging_buffer_memory, 0, buffer_size, 0, &data);
-    memcpy(data, &tlas_instance, (size_t)buffer_size);
+    memcpy(data, tlas_instances.data(), (size_t)buffer_size);
     vkUnmapMemory(logical_device, staging_buffer_memory);
 
     create_buffer(
-        logical_device, 
-        physical_device, 
-        buffer_size, 
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | 
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-        instance_buffer, 
+        logical_device,
+        physical_device,
+        buffer_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        instance_buffer,
         instance_buffer_memory
     );
     copy_buffer(logical_device, command_pool, graphics_queue, staging_buffer, instance_buffer, buffer_size);
@@ -233,8 +233,9 @@ static void create_instance_buffer(
 
 // MODIFIES: tlas_instance
 // EFFECTS: Sets all the fields in tlas_instance, used to create the instance buffer
-// This instance will reference the provided bottom level acceleration structure
-static void create_tlas_instance(VkDevice logical_device, const VkAccelerationStructureKHR& blas, VkAccelerationStructureInstanceKHR& tlas_instance) {
+//     This instance will reference the provided bottom level acceleration structure
+//     Use the given transform matrix's transpose to convert from VK to GL
+static void create_tlas_instance(VkDevice logical_device, const VkAccelerationStructureKHR& blas, const glm::mat4& transform, VkAccelerationStructureInstanceKHR& tlas_instance) {
     PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR =
         (PFN_vkGetAccelerationStructureDeviceAddressKHR)load_function(logical_device, "vkGetAccelerationStructureDeviceAddressKHR");
 
@@ -244,14 +245,13 @@ static void create_tlas_instance(VkDevice logical_device, const VkAccelerationSt
     blas_address_info.accelerationStructure = blas;
     VkDeviceAddress blas_address = vkGetAccelerationStructureDeviceAddressKHR(logical_device, &blas_address_info);
 
-    VkTransformMatrixKHR transform = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f
-    };
+    VkTransformMatrixKHR vk_transform{};
+    for (int row = 0; row < 3; row++)
+        for (int col = 0; col < 4; col++)
+            vk_transform.matrix[row][col] = transform[col][row];
 
     tlas_instance = VkAccelerationStructureInstanceKHR{};
-    tlas_instance.transform = transform;
+    tlas_instance.transform = vk_transform;
     tlas_instance.instanceCustomIndex = 0;
     tlas_instance.mask = 0xFF;
     tlas_instance.instanceShaderBindingTableRecordOffset = 0;
@@ -260,29 +260,32 @@ static void create_tlas_instance(VkDevice logical_device, const VkAccelerationSt
 }
 
 // MODIFIES: tlas_buffer, tlas_buffer_memory, tlas
-// EFFECTS: 
-//     Creates a tlas instance buffer in device memory
-//     Uses tlas_instance to create build_geometry_info, which is used to build the tlas in device memory
+// EFFECTS:
+//     Builds one tlas instance per blas and uses the instances to create an instance buffer in device memory
+//     Uses that buffer to create the instances geometry, which is used to build the tlas in device memory
 //   Returns tlas_buffer_memory, tlas_buffer, and the handle tlas
 void create_top_level_acceleration_structure(
-    VkDevice logical_device, VkPhysicalDevice physical_device, 
-    VkCommandPool command_pool, VkQueue graphics_queue, 
-    const VkAccelerationStructureKHR& blas, 
+    VkDevice logical_device, VkPhysicalDevice physical_device,
+    VkCommandPool command_pool, VkQueue graphics_queue,
+    const std::vector<VkAccelerationStructureKHR>& blases,
+    const std::vector<glm::mat4>& transforms,
     VkBuffer& tlas_buffer, VkDeviceMemory& tlas_buffer_memory, VkAccelerationStructureKHR& tlas
 ) {
-    VkAccelerationStructureInstanceKHR tlas_instance{};
-    create_tlas_instance(logical_device, blas, tlas_instance);
+    std::vector<VkAccelerationStructureInstanceKHR> instances;
+    for (size_t i = 0; i < blases.size(); i++) {
+        VkAccelerationStructureInstanceKHR instance{};
+        create_tlas_instance(logical_device, blases[i], transforms[i], instance);
+        instances.push_back(instance);
+    }
 
     VkBuffer instance_buffer;
     VkDeviceMemory instance_buffer_memory;
-
     create_instance_buffer(
-        logical_device, physical_device, 
-        command_pool, graphics_queue, 
-        tlas_instance, 
+        logical_device, physical_device,
+        command_pool, graphics_queue,
+        instances,
         instance_buffer, instance_buffer_memory
     );
-
 
     VkDeviceOrHostAddressConstKHR instance_buffer_address;
     get_buffer_device_address_const(logical_device, instance_buffer, instance_buffer_address);
@@ -292,7 +295,7 @@ void create_top_level_acceleration_structure(
     instance_data.pNext = nullptr;
     instance_data.arrayOfPointers = VK_FALSE;
     instance_data.data = instance_buffer_address;
-    
+
     VkAccelerationStructureGeometryKHR tlas_geometry{};
     tlas_geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
     tlas_geometry.pNext = nullptr;
@@ -309,12 +312,11 @@ void create_top_level_acceleration_structure(
     build_geometry_info.geometryCount = 1;
     build_geometry_info.pGeometries = &tlas_geometry;
 
-
-    uint32_t max_primitive_count = 1;
+    uint32_t max_primitive_count = static_cast<uint32_t>(instances.size());
     create_acceleration_structure(
-        logical_device, physical_device, 
-        command_pool, graphics_queue, 
-        build_geometry_info, max_primitive_count, 
+        logical_device, physical_device,
+        command_pool, graphics_queue,
+        build_geometry_info, max_primitive_count,
         tlas_buffer, tlas_buffer_memory, tlas
     );
 

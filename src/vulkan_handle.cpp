@@ -16,6 +16,7 @@
 #include <vulkan_graphics_pipeline.h>
 #include <vulkan_index_buffer.h>
 #include <vulkan_logical_device.h>
+#include <vulkan_object.h>
 #include <vulkan_object_loading.h>
 #include <vulkan_physical_device.h>
 #include <vulkan_storage_image.h>
@@ -126,7 +127,11 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
-    update_uniform_buffer(frame_index, swap_chain_extent, camera_position, camera_rotation, sound_waves, uniform_buffers_mapped);
+    std::vector<glm::mat4> transforms;
+    for (size_t i = 0; i < objects.size(); i++) {
+        transforms.push_back(objects[i]->get_model_matrix());
+    }
+    update_uniform_buffer(frame_index, swap_chain_extent, transforms, camera_position, camera_rotation, sound_waves, uniform_buffers_mapped);
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
@@ -141,11 +146,12 @@ void VulkanHandle::draw_frame() {
     finish_single_time_command(logical_device, graphics_queue, command_pool, compute_command_buffer);
 
     draw_command_buffer(
-        render_pass, frame_buffers, swap_chain_extent, 
-        swap_chain_image_index, frame_index, graphics_pipeline_layout, 
-        graphics_descriptor_sets, vertex_buffer, index_buffer, indices,
+        render_pass, frame_buffers, swap_chain_extent,
+        swap_chain_image_index, frame_index, graphics_pipeline_layout,
+        graphics_descriptor_sets, objects,
         graphics_pipeline, command_buffer
     );
+
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -212,22 +218,39 @@ VulkanHandle::VulkanHandle() {
         storage_image, storage_image_memory, 
         storage_image_view, storage_image_format
     );
-    load_obj_file("./../assets/models/cube.obj", vertices, indices);
-    create_vertex_buffer(logical_device, physical_device, command_pool, graphics_queue, vertices, vertex_buffer, vertex_buffer_memory);
-    create_index_buffer(logical_device, physical_device, command_pool, graphics_queue, indices, index_buffer, index_buffer_memory);
-    create_bottom_level_acceleration_structure(
-        logical_device, physical_device, 
-        command_pool, graphics_queue, 
-        vertex_buffer, index_buffer, 
-        vertices, indices, 
-        blas_buffer, blas_buffer_memory, blas
-    );
+
+    // Hardcoded objects
+    VulkanObject* test_object = new VulkanObject("./../assets/models/cube.obj");
+    test_object->init_object(logical_device, physical_device, command_pool, graphics_queue);
+    objects.push_back(test_object);
+
+    VulkanObject* test_object_2 = new VulkanObject("./../assets/models/cube.obj");
+    test_object_2->init_object(logical_device, physical_device, command_pool, graphics_queue);
+    test_object_2->position = glm::vec3(2.0f, 0.0f, 0.0f);
+    objects.push_back(test_object_2);
+
+    VulkanObject* test_object_3 = new VulkanObject("./../assets/models/cube.obj");
+    test_object_3->init_object(logical_device, physical_device, command_pool, graphics_queue);
+    test_object_3->position = glm::vec3(2.0f, 1.5f, 0.0f);
+    test_object_3->rotation = glm::vec3(0.0f, 45.0f, 0.0f);
+    test_object_3->scale = glm::vec3(0.5f);
+    objects.push_back(test_object_3);
+    //
+
+    std::vector<VkAccelerationStructureKHR> blases;
+    std::vector<glm::mat4> transforms;
+    for (size_t i = 0; i < objects.size(); i++) {
+        blases.push_back(objects[i]->get_blas());
+        transforms.push_back(objects[i]->get_model_matrix());
+    }
+
     create_top_level_acceleration_structure(
-        logical_device, physical_device, 
-        command_pool, graphics_queue, 
-        blas, 
+        logical_device, physical_device,
+        command_pool, graphics_queue,
+        blases, transforms,
         tlas_buffer, tlas_buffer_memory, tlas
     );
+
     create_uniform_buffers(
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
         uniform_buffers, uniform_buffers_memory, uniform_buffers_mapped
@@ -267,7 +290,8 @@ VulkanHandle::~VulkanHandle() {
         vkDestroyFence(logical_device, frame_fences[i], nullptr);
     }
     for (size_t i = 0; i < swap_chain_images.size(); i++) {
-        vkDestroySemaphore(logical_device, render_semaphores[i], nullptr);    
+
+        vkDestroySemaphore(logical_device, render_semaphores[i], nullptr);
     }
 
     vkDestroyPipeline(logical_device, compute_pipeline, nullptr);
@@ -277,16 +301,13 @@ VulkanHandle::~VulkanHandle() {
     vkDestroyPipelineLayout(logical_device, graphics_pipeline_layout, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);
 
-    vkDestroyBuffer(logical_device, index_buffer, nullptr);
-    vkFreeMemory(logical_device, index_buffer_memory, nullptr);
-
-    vkDestroyBuffer(logical_device, vertex_buffer, nullptr);
-    vkFreeMemory(logical_device, vertex_buffer_memory, nullptr);
+    for (size_t i = 0; i < objects.size(); i++) {
+        delete objects[i];
+    }
 
     cleanup_storage_image(logical_device, storage_image, storage_image_memory, storage_image_view);
 
     cleanup_acceleration_structure(logical_device, tlas_buffer, tlas_buffer_memory, tlas);
-    cleanup_acceleration_structure(logical_device, blas_buffer, blas_buffer_memory, blas);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(logical_device, uniform_buffers[i], nullptr);

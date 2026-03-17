@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 
 #include <vulkan_index_buffer.h>
+#include <vulkan_object.h>
 #include <vulkan_vertex_buffer.h>
 
 class VulkanHandle {
@@ -51,17 +52,7 @@ private:
     VkCommandPool command_pool;
     std::vector<VkCommandBuffer> command_buffers;
 
-    std::vector<Vertex> vertices;
-    VkBuffer vertex_buffer;
-    VkDeviceMemory vertex_buffer_memory;
-
-    std::vector<uint32_t> indices;
-    VkBuffer index_buffer;
-    VkDeviceMemory index_buffer_memory;
-
-    VkBuffer blas_buffer;
-    VkDeviceMemory blas_buffer_memory;
-    VkAccelerationStructureKHR blas;
+    std::vector<VulkanObject*> objects;
 
     VkBuffer tlas_buffer;
     VkDeviceMemory tlas_buffer_memory;
