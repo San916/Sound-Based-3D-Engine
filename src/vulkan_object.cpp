@@ -6,6 +6,7 @@
 
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <vulkan_acceleration_structure.h>
 #include <vulkan_index_buffer.h>
@@ -13,7 +14,11 @@
 #include <vulkan_object.h>
 #include <vulkan_vertex_buffer.h>
 
-VulkanObject::VulkanObject(const std::string& file_name) : file_name(file_name) {}
+VulkanObject::VulkanObject(const std::string& file_name) : file_name(file_name) {
+    position = glm::vec3(0.0f);
+    rotation = glm::vec3(0.0f);
+    scale = glm::vec3(1.0f);
+}
 
 VulkanObject::~VulkanObject() {
     if (logical_device == VK_NULL_HANDLE) return;
@@ -40,4 +45,14 @@ void VulkanObject::init_object(VkDevice logical_device, VkPhysicalDevice physica
         vertices, indices,
         blas_buffer, blas_buffer_memory, blas
     );
+}
+
+glm::mat4 VulkanObject::get_model_matrix() const {
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::scale(model, scale);
+    return model;
 }

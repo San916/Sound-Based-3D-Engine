@@ -195,7 +195,13 @@ void create_graphics_pipeline(
     VkDescriptorSetLayout descriptor_set_layouts[] = {descriptor_set_layout};
     pipeline_layout_create_info.setLayoutCount = 1;
     pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
-    pipeline_layout_create_info.pushConstantRangeCount = 0;
+    
+    VkPushConstantRange push_constant_range{};
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    push_constant_range.offset = 0;
+    push_constant_range.size = sizeof(int);
+    pipeline_layout_create_info.pushConstantRangeCount = 1;
+    pipeline_layout_create_info.pPushConstantRanges = &push_constant_range;
 
     if (vkCreatePipelineLayout(logical_device, &pipeline_layout_create_info, nullptr, &pipeline_layout) != VK_SUCCESS) {
         throw std::runtime_error("create_graphics_pipeline(): Failed to create graphics pipeline layout!");

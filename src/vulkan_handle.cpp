@@ -127,7 +127,11 @@ void VulkanHandle::draw_frame() {
         throw std::runtime_error("draw_frame(): Failed to acquire next swap chain image!");
     }
 
-    update_uniform_buffer(frame_index, swap_chain_extent, camera_position, camera_rotation, sound_waves, uniform_buffers_mapped);
+    std::vector<glm::mat4> transforms;
+    for (size_t i = 0; i < objects.size(); i++) {
+        transforms.push_back(objects[i]->get_model_matrix());
+    }
+    update_uniform_buffer(frame_index, swap_chain_extent, transforms, camera_position, camera_rotation, sound_waves, uniform_buffers_mapped);
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
@@ -141,14 +145,12 @@ void VulkanHandle::draw_frame() {
     vkCmdDispatch(compute_command_buffer, swap_chain_extent.width / dispatch_group_size.width, swap_chain_extent.height / dispatch_group_size.height, 1);
     finish_single_time_command(logical_device, graphics_queue, command_pool, compute_command_buffer);
 
-    for (size_t i = 0; i < objects.size(); i++) {
-        draw_command_buffer(
-            render_pass, frame_buffers, swap_chain_extent, 
-            swap_chain_image_index, frame_index, graphics_pipeline_layout, 
-            graphics_descriptor_sets, objects[i]->get_vertex_buffer(), objects[i]->get_index_buffer(), objects[i]->get_indices(),
-            graphics_pipeline, command_buffer
-        );
-    }
+    draw_command_buffer(
+        render_pass, frame_buffers, swap_chain_extent,
+        swap_chain_image_index, frame_index, graphics_pipeline_layout,
+        graphics_descriptor_sets, objects,
+        graphics_pipeline, command_buffer
+    );
 
 
     VkSubmitInfo submit_info{};
@@ -217,15 +219,29 @@ VulkanHandle::VulkanHandle() {
         storage_image_view, storage_image_format
     );
 
+    // Hardcoded objects
     VulkanObject* test_object = new VulkanObject("./../assets/models/cube.obj");
     test_object->init_object(logical_device, physical_device, command_pool, graphics_queue);
     objects.push_back(test_object);
+
+    VulkanObject* test_object_2 = new VulkanObject("./../assets/models/cube.obj");
+    test_object_2->init_object(logical_device, physical_device, command_pool, graphics_queue);
+    test_object_2->position = glm::vec3(2.0f, 0.0f, 0.0f);
+    objects.push_back(test_object_2);
+
+    VulkanObject* test_object_3 = new VulkanObject("./../assets/models/cube.obj");
+    test_object_3->init_object(logical_device, physical_device, command_pool, graphics_queue);
+    test_object_3->position = glm::vec3(2.0f, 1.5f, 0.0f);
+    test_object_3->rotation = glm::vec3(0.0f, 45.0f, 0.0f);
+    test_object_3->scale = glm::vec3(0.5f);
+    objects.push_back(test_object_3);
+    //
 
     std::vector<VkAccelerationStructureKHR> blases;
     std::vector<glm::mat4> transforms;
     for (size_t i = 0; i < objects.size(); i++) {
         blases.push_back(objects[i]->get_blas());
-        transforms.push_back(glm::mat4(1.0f));
+        transforms.push_back(objects[i]->get_model_matrix());
     }
 
     create_top_level_acceleration_structure(

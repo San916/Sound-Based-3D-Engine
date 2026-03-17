@@ -1,7 +1,7 @@
 #version 460
 
 layout(binding = 0) uniform UniformBufferObject {
-    mat4 model;
+    mat4 model[16];
     mat4 view;
     mat4 proj;
     vec4 position;
