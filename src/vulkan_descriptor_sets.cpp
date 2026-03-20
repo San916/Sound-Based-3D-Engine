@@ -288,14 +288,14 @@ void create_graphics_descriptor_sets(
 //     Writes the ubo in binding 2
 //     Writes the storage buffer in binding 3
 void create_compute_descriptor_sets(
-    VkDevice logical_device, 
-    size_t max_frames_in_flight, 
-    VkDescriptorPool compute_descriptor_pool, 
-    const VkAccelerationStructureKHR& tlas, 
+    VkDevice logical_device,
+    size_t max_frames_in_flight,
+    VkDescriptorPool compute_descriptor_pool,
     const VkImageView storage_image_view, 
-    const std::vector<VkBuffer>& uniform_buffers, 
-    const std::vector<VkBuffer>& storage_buffers, 
-    const VkDescriptorSetLayout& compute_descriptor_set_layout, 
+    const std::vector<VkAccelerationStructureKHR>& tlases,
+    const std::vector<VkBuffer>& uniform_buffers,
+    const std::vector<VkBuffer>& storage_buffers,
+    const VkDescriptorSetLayout& compute_descriptor_set_layout,
     std::vector<VkDescriptorSet>& compute_descriptor_sets
 ) {
     allocate_descriptor_sets(logical_device, max_frames_in_flight, compute_descriptor_pool, compute_descriptor_set_layout, compute_descriptor_sets);
@@ -303,7 +303,7 @@ void create_compute_descriptor_sets(
     VkWriteDescriptorSetAccelerationStructureKHR tlas_write_info = {};
     tlas_write_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
     tlas_write_info.accelerationStructureCount = 1;
-    tlas_write_info.pAccelerationStructures = &tlas;
+    tlas_write_info.pAccelerationStructures = nullptr;
 
     VkWriteDescriptorSet tlas_write = {};
     tlas_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -366,6 +366,7 @@ void create_compute_descriptor_sets(
 
 
     for (size_t i = 0; i < max_frames_in_flight; i++) {
+        tlas_write_info.pAccelerationStructures = &tlases[i];
         tlas_write.dstSet = compute_descriptor_sets[i];
 
         storage_image_write.dstSet = compute_descriptor_sets[i];

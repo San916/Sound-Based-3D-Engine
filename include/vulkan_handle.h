@@ -54,9 +54,9 @@ private:
 
     Scene* scene;
 
-    VkBuffer tlas_buffer;
-    VkDeviceMemory tlas_buffer_memory;
-    VkAccelerationStructureKHR tlas;
+    std::vector<VkBuffer> tlas_buffer;
+    std::vector<VkDeviceMemory> tlas_buffer_memory;
+    std::vector<VkAccelerationStructureKHR> tlases;
 
     VkImage storage_image;
     VkDeviceMemory storage_image_memory;

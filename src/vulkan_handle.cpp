@@ -143,7 +143,7 @@ void VulkanHandle::draw_frame() {
         logical_device, physical_device,
         command_pool, graphics_queue,
         blases, transforms,
-        tlas
+        tlases[frame_index]
     );
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
@@ -242,12 +242,17 @@ VulkanHandle::VulkanHandle() {
         transforms.push_back(objects[i]->get_model_matrix());
     }
 
-    create_top_level_acceleration_structure(
-        logical_device, physical_device,
-        command_pool, graphics_queue,
-        blases, transforms,
-        tlas_buffer, tlas_buffer_memory, tlas
-    );
+    tlas_buffer.resize(MAX_FRAMES_IN_FLIGHT);
+    tlas_buffer_memory.resize(MAX_FRAMES_IN_FLIGHT);
+    tlases.resize(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        create_top_level_acceleration_structure(
+            logical_device, physical_device,
+            command_pool, graphics_queue,
+            blases, transforms,
+            tlas_buffer[i], tlas_buffer_memory[i], tlases[i]
+        );
+    }
 
     create_uniform_buffers(
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
@@ -274,8 +279,8 @@ VulkanHandle::VulkanHandle() {
         logical_device,
         MAX_FRAMES_IN_FLIGHT,
         compute_descriptor_pool,
-        tlas,
         storage_image_view,
+        tlases,
         uniform_buffers,
         storage_buffers,
         compute_descriptor_set_layout,
@@ -305,7 +310,9 @@ VulkanHandle::~VulkanHandle() {
     vkDestroyPipelineLayout(logical_device, graphics_pipeline_layout, nullptr);
     vkDestroyRenderPass(logical_device, render_pass, nullptr);
 
-    cleanup_acceleration_structure(logical_device, tlas_buffer, tlas_buffer_memory, tlas);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        cleanup_acceleration_structure(logical_device, tlas_buffer[i], tlas_buffer_memory[i], tlases[i]);
+    }
 
     cleanup_storage_image(logical_device, storage_image, storage_image_memory, storage_image_view);
 
