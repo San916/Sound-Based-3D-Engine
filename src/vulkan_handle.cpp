@@ -130,15 +130,17 @@ void VulkanHandle::draw_frame() {
     }
 
     const std::vector<VulkanObject*> objects = scene->get_objects();
-        std::vector<VkAccelerationStructureKHR> blases;
+    std::vector<VkAccelerationStructureKHR> blases;
     std::vector<glm::mat4> transforms;
     for (size_t i = 0; i < objects.size(); i++) {
         blases.push_back(objects[i]->get_blas());
         transforms.push_back(objects[i]->get_model_matrix());
     }
 
+    int selected_object_index = prev_frame == -1 ? -1 : ((StorageBufferObject*)storage_buffers_mapped[prev_frame])->selected_object_index;
+
     update_uniform_buffer(frame_index, swap_chain_extent, camera_position, camera_rotation, uniform_buffers_mapped);
-    update_storage_buffer(frame_index, transforms, sound_waves, storage_buffers_mapped);
+    update_storage_buffer(frame_index, selected_object_index, transforms, sound_waves, storage_buffers_mapped);
     update_top_level_acceleration_structure(
         logical_device, physical_device,
         command_pool, graphics_queue,
@@ -148,15 +150,15 @@ void VulkanHandle::draw_frame() {
 
     VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
 
-    VkCommandBuffer command_buffer = command_buffers[frame_index];
-    vkResetCommandBuffer(command_buffer, 0);
-
     VkCommandBuffer compute_command_buffer;
     begin_single_time_command(logical_device, command_pool, compute_command_buffer);
     vkCmdBindPipeline(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
     vkCmdBindDescriptorSets(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &compute_descriptor_sets[frame_index], 0, nullptr);
     vkCmdDispatch(compute_command_buffer, swap_chain_extent.width / dispatch_group_size.width, swap_chain_extent.height / dispatch_group_size.height, 1);
     finish_single_time_command(logical_device, graphics_queue, command_pool, compute_command_buffer);
+
+    VkCommandBuffer command_buffer = command_buffers[frame_index];
+    vkResetCommandBuffer(command_buffer, 0);
 
     draw_command_buffer(
         render_pass, frame_buffers, swap_chain_extent,
@@ -202,6 +204,7 @@ void VulkanHandle::draw_frame() {
 
     vkQueuePresentKHR(present_queue, &present_info);
 
+    prev_frame = frame_index;
     frame_index = (frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -227,9 +230,18 @@ VulkanHandle::VulkanHandle() {
     create_storage_image(
         logical_device, physical_device, 
         command_pool, graphics_queue, 
-        swap_chain_extent, 
+        swap_chain_extent,
+        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         storage_image, storage_image_memory, 
-        storage_image_view, storage_image_format
+        storage_image_view
+    );
+    create_storage_image(
+        logical_device, physical_device, 
+        command_pool, graphics_queue, 
+        swap_chain_extent,
+        VK_FORMAT_R32_SINT, VK_IMAGE_USAGE_STORAGE_BIT,
+        object_id_image, object_id_image_memory, 
+        object_id_image_view
     );
 
     scene = new Scene("./../assets/scenes/scene.txt", logical_device, physical_device, command_pool, graphics_queue);
@@ -280,6 +292,7 @@ VulkanHandle::VulkanHandle() {
         MAX_FRAMES_IN_FLIGHT,
         compute_descriptor_pool,
         storage_image_view,
+        object_id_image_view,
         tlases,
         uniform_buffers,
         storage_buffers,
@@ -315,6 +328,7 @@ VulkanHandle::~VulkanHandle() {
     }
 
     cleanup_storage_image(logical_device, storage_image, storage_image_memory, storage_image_view);
+    cleanup_storage_image(logical_device, object_id_image, object_id_image_memory, object_id_image_view);
 
     delete scene;
 

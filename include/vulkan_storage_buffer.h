@@ -15,6 +15,7 @@
 struct StorageBufferObject {
     glm::mat4 model[MAX_OBJECTS];
     glm::vec4 sound_waves[MAX_SOUND_WAVES];
+    int selected_object_index = -1;
 };
 
 void create_storage_buffers(
@@ -27,6 +28,7 @@ void create_storage_buffers(
 );
 void update_storage_buffer(
     uint32_t frame_index,
+    int selected_object_index,
     const std::vector<glm::mat4>& transforms,
     const std::vector<glm::vec4>& sound_waves,
     std::vector<void*>& storage_buffers_mapped

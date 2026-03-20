@@ -275,6 +275,7 @@ void create_top_level_acceleration_structure(
     for (size_t i = 0; i < blases.size(); i++) {
         VkAccelerationStructureInstanceKHR instance{};
         create_tlas_instance(logical_device, blases[i], transforms[i], instance);
+        instance.instanceCustomIndex = static_cast<uint32_t>(i);
         instances.push_back(instance);
     }
 

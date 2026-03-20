@@ -13,6 +13,7 @@ layout(binding = 0) uniform UniformBufferObject {
 layout(binding = 2) readonly buffer StorageBufferObject {
     mat4 model[16];
     vec4 sound_waves[16];
+    int selected_object_index;
 } ssbo;
 
 layout(location = 0) in vec3 inPosition;

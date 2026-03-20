@@ -45,11 +45,15 @@ void create_storage_buffers(
 //     Sets the model matrices for each object, as well as the propagating sound waves
 void update_storage_buffer(
     uint32_t frame_index,
+    int selected_object_index,
     const std::vector<glm::mat4>& transforms,
     const std::vector<glm::vec4>& sound_waves,
     std::vector<void*>& storage_buffers_mapped
 ) {
     StorageBufferObject storage_buffer{};
+
+    storage_buffer.selected_object_index = selected_object_index;
+
     for (size_t i = 0; i < transforms.size() && i < MAX_OBJECTS; i++) {
         storage_buffer.model[i] = transforms[i];
     }

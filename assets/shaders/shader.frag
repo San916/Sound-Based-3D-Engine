@@ -11,6 +11,7 @@ layout(binding = 1) uniform sampler2D storage_image;
 layout(binding = 2) readonly buffer StorageBufferObject {
     mat4 model[16];
     vec4 sound_waves[16];
+    int selected_object_index;
 } ssbo;
 
 layout(location = 1) in vec3 fragColor;

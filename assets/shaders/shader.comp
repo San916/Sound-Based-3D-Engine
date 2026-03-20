@@ -13,10 +13,13 @@ layout(binding = 2) uniform UniformBufferObject {
     vec4 position;
 } ubo;
 
-layout(binding = 3) readonly buffer StorageBufferObject {
+layout(binding = 3) buffer StorageBufferObject {
     mat4 model[16];
     vec4 sound_waves[16];
+    int selected_object_index;
 } ssbo;
+
+layout(binding = 4, r32i) uniform iimage2D object_id_image;
 
 vec3 get_ray_dir(ivec2 viewport_pos, ivec2 image_size) {
     vec2 normalized_device_coords = 2.0 * (vec2(viewport_pos) + 0.5) / vec2(image_size) - 1.0;
@@ -34,7 +37,7 @@ vec3 get_ray_dir(ivec2 viewport_pos, ivec2 image_size) {
     return ray_dir;
 }
 
-float get_ray_hit(vec3 ray_origin, vec3 ray_dir) {
+float get_ray_hit(vec3 ray_origin, vec3 ray_dir, out int object_id) {
     rayQueryEXT ray_query;
     rayQueryInitializeEXT(
         ray_query, 
@@ -50,9 +53,11 @@ float get_ray_hit(vec3 ray_origin, vec3 ray_dir) {
     while (rayQueryProceedEXT(ray_query)) {};
 
     if (rayQueryGetIntersectionTypeEXT(ray_query, true) != gl_RayQueryCommittedIntersectionTriangleEXT) {
+        object_id = -1;
         return -1.0;
     }
 
+    object_id = rayQueryGetIntersectionInstanceIdEXT(ray_query, true);
     return rayQueryGetIntersectionTEXT(ray_query, true);
 }
 
@@ -87,8 +92,14 @@ void main() {
 
     vec3 ray_origin = ubo.position.xyz;
     vec3 ray_dir = get_ray_dir(viewport_pos, image_size);
+    int object_id;
 
-    float dist_from_surface = get_ray_hit(ray_origin, ray_dir);
+    float dist_from_surface = get_ray_hit(ray_origin, ray_dir, object_id);
+    if (viewport_pos == image_size / 2) {
+        ssbo.selected_object_index = object_id;
+    }
+
+    imageStore(object_id_image, viewport_pos, ivec4(object_id, 0, 0, 0));
 
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -125,5 +136,6 @@ void main() {
             color.rgb += vec3(intensity);
         }
     }
+    
     imageStore(storage_image, viewport_pos, color);
 }

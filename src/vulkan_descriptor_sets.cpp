@@ -84,7 +84,7 @@ void create_graphics_descriptor_set_layout(VkDevice logical_device, VkDescriptor
 
 // MODIFIES: compute_descriptor_set_layout
 // EFFECTS: Creates a descriptor set layout for the compute pipeline and returns it
-//     Binds: TLAS, storage image, UBO, storage buffer
+//     Binds: TLAS, storage image, UBO, storage buffer, object id image
 void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout) {
     VkDescriptorSetLayoutBinding tlas_binding{};
     tlas_binding.binding = 0;
@@ -114,8 +114,15 @@ void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorS
     storage_buffer_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     storage_buffer_binding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding object_id_image_binding{};
+    object_id_image_binding.binding = 4;
+    object_id_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_binding.descriptorCount = 1;
+    object_id_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    object_id_image_binding.pImmutableSamplers = nullptr;
+
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        tlas_binding, storage_image_binding, uniform_buffer_binding, storage_buffer_binding
+        tlas_binding, storage_image_binding, uniform_buffer_binding, storage_buffer_binding, object_id_image_binding
     };
 
     create_descriptor_set_layout(logical_device, bindings, compute_descriptor_set_layout);
@@ -170,7 +177,11 @@ void create_compute_descriptor_pool(VkDevice logical_device, size_t max_frames_i
     storage_buffer_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     storage_buffer_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
 
-    std::vector<VkDescriptorPoolSize> pool_sizes = {tlas_size, storage_image_size, uniform_buffer_size, storage_buffer_size};
+    VkDescriptorPoolSize object_id_image_size{};
+    object_id_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    std::vector<VkDescriptorPoolSize> pool_sizes = {tlas_size, storage_image_size, uniform_buffer_size, storage_buffer_size, object_id_image_size};
 
     VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
     descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -287,11 +298,13 @@ void create_graphics_descriptor_sets(
 //     Writes the storage image (allows writing into, unlike a sampler) in binding 1 of each descriptor set
 //     Writes the ubo in binding 2
 //     Writes the storage buffer in binding 3
+//     Writes the object id image (allows writing into) in binding 4
 void create_compute_descriptor_sets(
     VkDevice logical_device,
     size_t max_frames_in_flight,
     VkDescriptorPool compute_descriptor_pool,
-    const VkImageView storage_image_view, 
+    const VkImageView storage_image_view,
+    const VkImageView object_id_image_view,
     const std::vector<VkAccelerationStructureKHR>& tlases,
     const std::vector<VkBuffer>& uniform_buffers,
     const std::vector<VkBuffer>& storage_buffers,
@@ -364,6 +377,21 @@ void create_compute_descriptor_sets(
     storage_buffer_write.pBufferInfo = &storage_buffer_info;
     storage_buffer_write.pTexelBufferView = nullptr;
 
+    VkDescriptorImageInfo object_id_image_info{};
+    object_id_image_info.sampler = nullptr;
+    object_id_image_info.imageView = object_id_image_view;
+    object_id_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet object_id_image_write{};
+    object_id_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    object_id_image_write.pNext = nullptr;
+    object_id_image_write.dstBinding = 4;
+    object_id_image_write.dstArrayElement = 0;
+    object_id_image_write.descriptorCount = 1;
+    object_id_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_write.pImageInfo = &object_id_image_info;
+    object_id_image_write.pBufferInfo = nullptr;
+    object_id_image_write.pTexelBufferView = nullptr;
 
     for (size_t i = 0; i < max_frames_in_flight; i++) {
         tlas_write_info.pAccelerationStructures = &tlases[i];
@@ -377,7 +405,9 @@ void create_compute_descriptor_sets(
         storage_buffer_info.buffer = storage_buffers[i];
         storage_buffer_write.dstSet = compute_descriptor_sets[i];
 
-        std::vector<VkWriteDescriptorSet> writes = {tlas_write, storage_image_write, uniform_buffer_write, storage_buffer_write};
+        object_id_image_write.dstSet = compute_descriptor_sets[i];
+
+        std::vector<VkWriteDescriptorSet> writes = {tlas_write, storage_image_write, uniform_buffer_write, storage_buffer_write, object_id_image_write};
 
         vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     }

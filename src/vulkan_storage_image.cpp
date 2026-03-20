@@ -13,7 +13,7 @@
 //     Creates a storage image in device memory then binds a VkImage to that memory
 static void create_storage_image_memory(
     VkDevice logical_device, VkPhysicalDevice physical_device, 
-    VkExtent2D swap_chain_extent, VkFormat image_format, 
+    VkExtent2D swap_chain_extent, VkFormat image_format, VkImageUsageFlags usage_flags,
     VkImage& storage_image, VkDeviceMemory& storage_image_memory
 ) {
     VkExtent3D extent_3d{};
@@ -31,7 +31,7 @@ static void create_storage_image_memory(
     image_info.arrayLayers = 1;
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    image_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    image_info.usage = usage_flags;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -91,14 +91,13 @@ void create_storage_image(
     VkDevice logical_device, VkPhysicalDevice physical_device, 
     VkCommandPool command_pool, VkQueue graphics_queue, 
     VkExtent2D swap_chain_extent, 
+    VkFormat storage_image_format, VkImageUsageFlags usage_flags,
     VkImage& storage_image, VkDeviceMemory& storage_image_memory, 
-    VkImageView& storage_image_view, VkFormat& storage_image_format
+    VkImageView& storage_image_view
 ) {
-    storage_image_format = VK_FORMAT_R8G8B8A8_UNORM;
-
     create_storage_image_memory(
         logical_device, physical_device, 
-        swap_chain_extent, storage_image_format, 
+        swap_chain_extent, storage_image_format, usage_flags,
         storage_image, storage_image_memory
     );
 

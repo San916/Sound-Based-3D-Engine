@@ -64,6 +64,11 @@ private:
     VkFormat storage_image_format;
     VkSampler storage_image_sampler;
 
+    VkImage object_id_image;
+    VkDeviceMemory object_id_image_memory;
+    VkImageView object_id_image_view;
+    VkFormat object_id_image_format;
+
     std::vector<VkBuffer> storage_buffers;
     std::vector<VkDeviceMemory> storage_buffers_memory;
     std::vector<void*> storage_buffers_mapped;
@@ -78,6 +83,7 @@ private:
     bool q_held_down = false;
     bool initial_mouse_position_set = false;
 
+    int prev_frame = -1;
     size_t frame_index = 0;
     std::vector<VkSemaphore> acquire_semaphores;
     std::vector<VkSemaphore> render_semaphores;

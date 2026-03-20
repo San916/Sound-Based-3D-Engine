@@ -25,6 +25,7 @@ void create_compute_descriptor_sets(
     size_t max_frames_in_flight,
     VkDescriptorPool compute_descriptor_pool,
     const VkImageView storage_image_view,
+    const VkImageView object_id_image_view,
     const std::vector<VkAccelerationStructureKHR>& tlases,
     const std::vector<VkBuffer>& uniform_buffers,
     const std::vector<VkBuffer>& storage_buffers,
