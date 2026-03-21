@@ -121,7 +121,7 @@ void VulkanHandle::create_sync_objects() {
 void VulkanHandle::draw_frame() {
     VkFence frame_fence = frame_fences[frame_index];
     vkWaitForFences(logical_device, 1, &frame_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(logical_device, 1, &frame_fence);
+    // vkResetFences(logical_device, 1, &frame_fence);
 
     uint32_t swap_chain_image_index;
     VkSemaphore acquire_semaphore = acquire_semaphores[frame_index];
@@ -148,14 +148,20 @@ void VulkanHandle::draw_frame() {
         tlases[frame_index]
     );
 
-    VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
-
     VkCommandBuffer compute_command_buffer;
     begin_single_time_command(logical_device, command_pool, compute_command_buffer);
     vkCmdBindPipeline(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline);
     vkCmdBindDescriptorSets(compute_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline_layout, 0, 1, &compute_descriptor_sets[frame_index], 0, nullptr);
     vkCmdDispatch(compute_command_buffer, swap_chain_extent.width / dispatch_group_size.width, swap_chain_extent.height / dispatch_group_size.height, 1);
     finish_single_time_command(logical_device, graphics_queue, command_pool, compute_command_buffer);
+
+    VkCommandBuffer post_process_command_buffer;
+    begin_single_time_command(logical_device, command_pool, post_process_command_buffer);
+    vkCmdBindPipeline(post_process_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, post_process_pipeline);
+    vkCmdBindDescriptorSets(post_process_command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, post_process_pipeline_layout, 0, 1, &post_process_descriptor_sets[frame_index], 0, nullptr);
+    vkCmdPushConstants(post_process_command_buffer, post_process_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), &selected_object_index);
+    vkCmdDispatch(post_process_command_buffer, swap_chain_extent.width / dispatch_group_size.width, swap_chain_extent.height / dispatch_group_size.height, 1);
+    finish_single_time_command(logical_device, graphics_queue, command_pool, post_process_command_buffer);
 
     VkCommandBuffer command_buffer = command_buffers[frame_index];
     vkResetCommandBuffer(command_buffer, 0);
@@ -178,13 +184,16 @@ void VulkanHandle::draw_frame() {
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
 
+    VkSemaphore render_semaphore = render_semaphores[swap_chain_image_index];
+
     VkSemaphore signal_semaphores[] = {render_semaphore};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
     submit_info.pCommandBuffers = &command_buffer;
     submit_info.commandBufferCount = 1;
-
+    
+    vkResetFences(logical_device, 1, &frame_fence);
     if (vkQueueSubmit(graphics_queue, 1, &submit_info, frame_fence) != VK_SUCCESS) {
         throw std::runtime_error("draw_frame(): Failed to submit draw command buffer!");
     }
@@ -221,10 +230,15 @@ VulkanHandle::VulkanHandle() {
     setup_logical_device(physical_device, logical_device, queue_family_indices, graphics_queue, present_queue);
     create_swap_chain(window, surface, physical_device, logical_device, queue_family_indices, swap_chain, swap_chain_images, swap_chain_image_format, swap_chain_extent);
     create_swap_chain_image_views(logical_device, swap_chain_images, swap_chain_image_views, swap_chain_image_format);
+
     create_graphics_descriptor_set_layout(logical_device, graphics_descriptor_set_layout);
     create_compute_descriptor_set_layout(logical_device, compute_descriptor_set_layout);
+    create_post_process_descriptor_set_layout(logical_device, post_process_descriptor_set_layout);
+
     create_graphics_pipeline(logical_device, swap_chain_extent, swap_chain_image_format, render_pass, graphics_descriptor_set_layout, graphics_pipeline_layout, graphics_pipeline);
     create_compute_pipeline(logical_device, compute_descriptor_set_layout, compute_pipeline_layout, compute_pipeline);
+    create_post_process_pipeline(logical_device, post_process_descriptor_set_layout, post_process_pipeline_layout, post_process_pipeline);
+
     create_frame_buffers(logical_device, swap_chain_image_views, swap_chain_extent, render_pass, frame_buffers);
     create_command_pool(logical_device, queue_family_indices.graphics_family_index.value(), command_pool);
     create_storage_image(
@@ -274,8 +288,11 @@ VulkanHandle::VulkanHandle() {
         logical_device, physical_device, MAX_FRAMES_IN_FLIGHT, 
         storage_buffers, storage_buffers_memory, storage_buffers_mapped
     );
+
     create_graphics_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, graphics_descriptor_pool);
     create_compute_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, compute_descriptor_pool);
+    create_post_process_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, post_process_descriptor_pool);
+
     create_graphics_descriptor_sets(
         logical_device, 
         MAX_FRAMES_IN_FLIGHT, 
@@ -299,6 +316,15 @@ VulkanHandle::VulkanHandle() {
         compute_descriptor_set_layout,
         compute_descriptor_sets
     );
+    create_post_process_descriptor_sets(
+        logical_device,
+        MAX_FRAMES_IN_FLIGHT,
+        post_process_descriptor_pool,
+        storage_image_view,
+        object_id_image_view,
+        post_process_descriptor_set_layout,
+        post_process_descriptor_sets
+    );
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
@@ -315,6 +341,9 @@ VulkanHandle::~VulkanHandle() {
 
         vkDestroySemaphore(logical_device, render_semaphores[i], nullptr);
     }
+
+    vkDestroyPipeline(logical_device, post_process_pipeline, nullptr);
+    vkDestroyPipelineLayout(logical_device, post_process_pipeline_layout, nullptr);
 
     vkDestroyPipeline(logical_device, compute_pipeline, nullptr);
     vkDestroyPipelineLayout(logical_device, compute_pipeline_layout, nullptr);
@@ -342,6 +371,8 @@ VulkanHandle::~VulkanHandle() {
         vkFreeMemory(logical_device, storage_buffers_memory[i], nullptr);
     }
 
+    vkDestroyDescriptorPool(logical_device, post_process_descriptor_pool, nullptr);
+    vkDestroyDescriptorSetLayout(logical_device, post_process_descriptor_set_layout, nullptr);
     vkDestroyDescriptorPool(logical_device, compute_descriptor_pool, nullptr);
     vkDestroyDescriptorSetLayout(logical_device, compute_descriptor_set_layout, nullptr);
     vkDestroyDescriptorPool(logical_device, graphics_descriptor_pool, nullptr);

@@ -47,6 +47,12 @@ private:
     VkPipelineLayout compute_pipeline_layout;
     VkPipeline compute_pipeline;
 
+    VkDescriptorPool post_process_descriptor_pool;
+    std::vector<VkDescriptorSet> post_process_descriptor_sets;
+    VkDescriptorSetLayout post_process_descriptor_set_layout;
+    VkPipelineLayout post_process_pipeline_layout;
+    VkPipeline post_process_pipeline;
+
     const VkExtent2D dispatch_group_size = {16, 16};
 
     VkCommandPool command_pool;

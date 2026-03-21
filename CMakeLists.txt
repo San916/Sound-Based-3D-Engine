@@ -11,9 +11,12 @@ find_package(glm REQUIRED)
 set(VERT_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader.vert)
 set(FRAG_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader.frag)
 set(COMP_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader.comp)
+set(POST_COMP_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader_post.comp)
+
 set(VERT_SPV_OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader_vert.spv)
 set(FRAG_SPV_OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader_frag.spv)
 set(COMP_SPV_OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader_comp.spv)
+set(POST_COMP_SPV_OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader_post_comp.spv)
 
 add_custom_command(
     OUTPUT ${VERT_SPV_OUTPUT}
@@ -30,8 +33,13 @@ add_custom_command(
     COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${COMP_SHADER_SRC} -o ${COMP_SPV_OUTPUT}
     DEPENDS ${COMP_SHADER_SRC}
 )
+add_custom_command(
+    OUTPUT ${POST_COMP_SPV_OUTPUT}
+    COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${POST_COMP_SHADER_SRC} -o ${POST_COMP_SPV_OUTPUT}
+    DEPENDS ${POST_COMP_SHADER_SRC}
+)
 
-add_custom_target(compile_shaders ALL DEPENDS ${VERT_SPV_OUTPUT} ${FRAG_SPV_OUTPUT} ${COMP_SPV_OUTPUT})
+add_custom_target(compile_shaders ALL DEPENDS ${VERT_SPV_OUTPUT} ${FRAG_SPV_OUTPUT} ${COMP_SPV_OUTPUT} ${POST_COMP_SPV_OUTPUT})
 
 set(SOURCES
     src/main.cpp

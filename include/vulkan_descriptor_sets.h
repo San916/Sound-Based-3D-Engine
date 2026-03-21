@@ -6,9 +6,7 @@
 #include <vulkan/vulkan.h>
 
 void create_graphics_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& graphics_descriptor_set_layout);
-void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout);
 void create_graphics_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& graphics_descriptor_pool);
-void create_compute_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& compute_descriptor_pool);
 void create_graphics_descriptor_sets(
     VkDevice logical_device, 
     size_t max_frames_in_flight, 
@@ -20,6 +18,9 @@ void create_graphics_descriptor_sets(
     const VkDescriptorSetLayout& graphics_descriptor_set_layout, 
     std::vector<VkDescriptorSet>& graphics_descriptor_sets
 );
+
+void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout);
+void create_compute_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& compute_descriptor_pool);
 void create_compute_descriptor_sets(
     VkDevice logical_device,
     size_t max_frames_in_flight,
@@ -31,6 +32,18 @@ void create_compute_descriptor_sets(
     const std::vector<VkBuffer>& storage_buffers,
     const VkDescriptorSetLayout& compute_descriptor_set_layout,
     std::vector<VkDescriptorSet>& compute_descriptor_sets
+);
+
+void create_post_process_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout);
+void create_post_process_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& post_process_descriptor_pool);
+void create_post_process_descriptor_sets(
+    VkDevice logical_device,
+    size_t max_frames_in_flight,
+    VkDescriptorPool post_process_descriptor_pool,
+    const VkImageView storage_image_view,
+    const VkImageView object_id_image_view,
+    const VkDescriptorSetLayout& post_process_descriptor_set_layout,
+    std::vector<VkDescriptorSet>& post_process_descriptor_sets
 );
 
 #endif

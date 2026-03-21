@@ -82,53 +82,6 @@ void create_graphics_descriptor_set_layout(VkDevice logical_device, VkDescriptor
     create_descriptor_set_layout(logical_device, bindings, graphics_descriptor_set_layout);
 }
 
-// MODIFIES: compute_descriptor_set_layout
-// EFFECTS: Creates a descriptor set layout for the compute pipeline and returns it
-//     Binds: TLAS, storage image, UBO, storage buffer, object id image
-void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout) {
-    VkDescriptorSetLayoutBinding tlas_binding{};
-    tlas_binding.binding = 0;
-    tlas_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-    tlas_binding.descriptorCount = 1;
-    tlas_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    tlas_binding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding storage_image_binding{};
-    storage_image_binding.binding = 1;
-    storage_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    storage_image_binding.descriptorCount = 1;
-    storage_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    storage_image_binding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding uniform_buffer_binding{};
-    uniform_buffer_binding.binding = 2;
-    uniform_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uniform_buffer_binding.descriptorCount = 1;
-    uniform_buffer_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    uniform_buffer_binding.pImmutableSamplers = nullptr;
-    
-    VkDescriptorSetLayoutBinding storage_buffer_binding{};
-    storage_buffer_binding.binding = 3;
-    storage_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    storage_buffer_binding.descriptorCount = 1;
-    storage_buffer_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    storage_buffer_binding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding object_id_image_binding{};
-    object_id_image_binding.binding = 4;
-    object_id_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    object_id_image_binding.descriptorCount = 1;
-    object_id_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    object_id_image_binding.pImmutableSamplers = nullptr;
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        tlas_binding, storage_image_binding, uniform_buffer_binding, storage_buffer_binding, object_id_image_binding
-    };
-
-    create_descriptor_set_layout(logical_device, bindings, compute_descriptor_set_layout);
-}
-
-
 // MODIFIES: graphics_descriptor_pool
 // EFFECTS: Creates the graphics descriptor pool with entries equal to the number of inflight frames
 void create_graphics_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& graphics_descriptor_pool) {
@@ -155,43 +108,6 @@ void create_graphics_descriptor_pool(VkDevice logical_device, size_t max_frames_
 
     if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &graphics_descriptor_pool) != VK_SUCCESS) {
         throw std::runtime_error("create_graphics_descriptor_pool(): Failed to create graphics descriptor pool!");
-    }
-}
-
-// MODIFIES: compute_descriptor_pool
-// EFFECTS: Creates the compute descriptor pool with entries equal to the number of inflight frames
-void create_compute_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& compute_descriptor_pool) {
-    VkDescriptorPoolSize tlas_size{};
-    tlas_size.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-    tlas_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
-
-    VkDescriptorPoolSize storage_image_size{};
-    storage_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    storage_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
-
-    VkDescriptorPoolSize uniform_buffer_size{};
-    uniform_buffer_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uniform_buffer_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
-
-    VkDescriptorPoolSize storage_buffer_size{};
-    storage_buffer_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    storage_buffer_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
-
-    VkDescriptorPoolSize object_id_image_size{};
-    object_id_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    object_id_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
-
-    std::vector<VkDescriptorPoolSize> pool_sizes = {tlas_size, storage_image_size, uniform_buffer_size, storage_buffer_size, object_id_image_size};
-
-    VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
-    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descriptor_pool_create_info.pNext = nullptr;
-    descriptor_pool_create_info.maxSets = static_cast<uint32_t>(max_frames_in_flight);
-    descriptor_pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
-    descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
-
-    if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &compute_descriptor_pool) != VK_SUCCESS) {
-        throw std::runtime_error("create_compute_descriptor_pool(): Failed to create compute descriptor pool!");
     }
 }
 
@@ -288,6 +204,90 @@ void create_graphics_descriptor_sets(
         std::vector<VkWriteDescriptorSet> writes = {uniform_buffer_write, storage_image_write, storage_buffer_write};
 
         vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    }
+}
+
+
+// MODIFIES: compute_descriptor_set_layout
+// EFFECTS: Creates a descriptor set layout for the compute pipeline and returns it
+//     Binds: TLAS, storage image, UBO, storage buffer, object id image
+void create_compute_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& compute_descriptor_set_layout) {
+    VkDescriptorSetLayoutBinding tlas_binding{};
+    tlas_binding.binding = 0;
+    tlas_binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    tlas_binding.descriptorCount = 1;
+    tlas_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    tlas_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding storage_image_binding{};
+    storage_image_binding.binding = 1;
+    storage_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    storage_image_binding.descriptorCount = 1;
+    storage_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    storage_image_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding uniform_buffer_binding{};
+    uniform_buffer_binding.binding = 2;
+    uniform_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniform_buffer_binding.descriptorCount = 1;
+    uniform_buffer_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    uniform_buffer_binding.pImmutableSamplers = nullptr;
+    
+    VkDescriptorSetLayoutBinding storage_buffer_binding{};
+    storage_buffer_binding.binding = 3;
+    storage_buffer_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    storage_buffer_binding.descriptorCount = 1;
+    storage_buffer_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    storage_buffer_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding object_id_image_binding{};
+    object_id_image_binding.binding = 4;
+    object_id_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_binding.descriptorCount = 1;
+    object_id_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    object_id_image_binding.pImmutableSamplers = nullptr;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {
+        tlas_binding, storage_image_binding, uniform_buffer_binding, storage_buffer_binding, object_id_image_binding
+    };
+
+    create_descriptor_set_layout(logical_device, bindings, compute_descriptor_set_layout);
+}
+
+// MODIFIES: compute_descriptor_pool
+// EFFECTS: Creates the compute descriptor pool with entries equal to the number of inflight frames
+void create_compute_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& compute_descriptor_pool) {
+    VkDescriptorPoolSize tlas_size{};
+    tlas_size.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    tlas_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolSize storage_image_size{};
+    storage_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    storage_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolSize uniform_buffer_size{};
+    uniform_buffer_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uniform_buffer_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolSize storage_buffer_size{};
+    storage_buffer_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    storage_buffer_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolSize object_id_image_size{};
+    object_id_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    std::vector<VkDescriptorPoolSize> pool_sizes = {tlas_size, storage_image_size, uniform_buffer_size, storage_buffer_size, object_id_image_size};
+
+    VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
+    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptor_pool_create_info.pNext = nullptr;
+    descriptor_pool_create_info.maxSets = static_cast<uint32_t>(max_frames_in_flight);
+    descriptor_pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+    descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
+
+    if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &compute_descriptor_pool) != VK_SUCCESS) {
+        throw std::runtime_error("create_compute_descriptor_pool(): Failed to create compute descriptor pool!");
     }
 }
 
@@ -408,6 +408,116 @@ void create_compute_descriptor_sets(
         object_id_image_write.dstSet = compute_descriptor_sets[i];
 
         std::vector<VkWriteDescriptorSet> writes = {tlas_write, storage_image_write, uniform_buffer_write, storage_buffer_write, object_id_image_write};
+
+        vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    }
+}
+
+
+// MODIFIES: post_process_descriptor_set_layout
+// EFFECTS: Creates a descriptor set layout for the post-process pipeline and returns it
+//     Binds: storage image, object id image
+void create_post_process_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& post_process_descriptor_set_layout) {
+    VkDescriptorSetLayoutBinding storage_image_binding{};
+    storage_image_binding.binding = 0;
+    storage_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    storage_image_binding.descriptorCount = 1;
+    storage_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    storage_image_binding.pImmutableSamplers = nullptr;
+
+    VkDescriptorSetLayoutBinding object_id_image_binding{};
+    object_id_image_binding.binding = 1;
+    object_id_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_binding.descriptorCount = 1;
+    object_id_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    object_id_image_binding.pImmutableSamplers = nullptr;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {
+        storage_image_binding, object_id_image_binding
+    };
+
+    create_descriptor_set_layout(logical_device, bindings, post_process_descriptor_set_layout);
+}
+
+// MODIFIES: post_process_descriptor_pool
+// EFFECTS: Creates the post-process descriptor pool with entries equal to the number of inflight frames
+void create_post_process_descriptor_pool(VkDevice logical_device, size_t max_frames_in_flight, VkDescriptorPool& post_process_descriptor_pool) {
+    VkDescriptorPoolSize storage_image_size{};
+    storage_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    storage_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    VkDescriptorPoolSize object_id_image_size{};
+    object_id_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    std::vector<VkDescriptorPoolSize> pool_sizes = {storage_image_size, object_id_image_size};
+
+    VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
+    descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    descriptor_pool_create_info.pNext = nullptr;
+    descriptor_pool_create_info.maxSets = static_cast<uint32_t>(max_frames_in_flight);
+    descriptor_pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+    descriptor_pool_create_info.pPoolSizes = pool_sizes.data();
+
+    if (vkCreateDescriptorPool(logical_device, &descriptor_pool_create_info, nullptr, &post_process_descriptor_pool) != VK_SUCCESS) {
+        throw std::runtime_error("create_post_process_descriptor_pool(): Failed to create post-process descriptor pool!");
+    }
+}
+
+// REQUIRES: post_process_descriptor_set_layout.size() >= max_frames_in_flight
+// MODIFIES: post_process_descriptor_sets
+// EFFECTS: Allocates post-process descriptor sets and writes the resources into each descriptor set with unique bindings
+//     Writes the storage image (allows writing into) in binding 0 of each descriptor set
+//     Writes the object id image (allows writing into but we only read, because we cant use sampler for this image format) in binding 1
+void create_post_process_descriptor_sets(
+    VkDevice logical_device,
+    size_t max_frames_in_flight,
+    VkDescriptorPool post_process_descriptor_pool,
+    const VkImageView storage_image_view,
+    const VkImageView object_id_image_view,
+    const VkDescriptorSetLayout& post_process_descriptor_set_layout,
+    std::vector<VkDescriptorSet>& post_process_descriptor_sets
+) {
+    allocate_descriptor_sets(logical_device, max_frames_in_flight, post_process_descriptor_pool, post_process_descriptor_set_layout, post_process_descriptor_sets);
+
+    VkDescriptorImageInfo storage_image_info{};
+    storage_image_info.sampler = nullptr;
+    storage_image_info.imageView = storage_image_view;
+    storage_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet storage_image_write{};
+    storage_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    storage_image_write.pNext = nullptr;
+    storage_image_write.dstBinding = 0;
+    storage_image_write.dstArrayElement = 0;
+    storage_image_write.descriptorCount = 1;
+    storage_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    storage_image_write.pImageInfo = &storage_image_info;
+    storage_image_write.pBufferInfo = nullptr;
+    storage_image_write.pTexelBufferView = nullptr;
+
+    VkDescriptorImageInfo object_id_image_info{};
+    object_id_image_info.sampler = nullptr;
+    object_id_image_info.imageView = object_id_image_view;
+    object_id_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet object_id_image_write{};
+    object_id_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    object_id_image_write.pNext = nullptr;
+    object_id_image_write.dstBinding = 1;
+    object_id_image_write.dstArrayElement = 0;
+    object_id_image_write.descriptorCount = 1;
+    object_id_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    object_id_image_write.pImageInfo = &object_id_image_info;
+    object_id_image_write.pBufferInfo = nullptr;
+    object_id_image_write.pTexelBufferView = nullptr;
+
+    for (size_t i = 0; i < max_frames_in_flight; i++) {
+        storage_image_write.dstSet = post_process_descriptor_sets[i];
+
+        object_id_image_write.dstSet = post_process_descriptor_sets[i];
+
+        std::vector<VkWriteDescriptorSet> writes = {storage_image_write, object_id_image_write};
 
         vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     }

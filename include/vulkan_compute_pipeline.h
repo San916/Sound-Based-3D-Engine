@@ -10,4 +10,11 @@ void create_compute_pipeline(
     VkPipeline& compute_pipeline
 );
 
+void create_post_process_pipeline(
+    VkDevice logical_device, 
+    VkDescriptorSetLayout descriptor_set_layout, 
+    VkPipelineLayout& post_process_pipeline_layout, 
+    VkPipeline& post_process_pipeline
+);
+
 #endif

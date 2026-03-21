@@ -1,0 +1,53 @@
+#version 460
+
+layout(push_constant) uniform PushConstants {
+    int selected_object_index;
+} push_constants;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(binding = 0, rgba8) uniform image2D storage_image;
+
+layout(binding = 1, r32i) uniform iimage2D object_id_image;
+
+void main() {
+    ivec2 viewport_pos = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 image_size = imageSize(storage_image);
+
+    if (viewport_pos.x >= image_size.x || viewport_pos.y >= image_size.y) {
+        return;
+    }
+
+    if (push_constants.selected_object_index < 0) {
+        return;
+    }
+
+    int center_id = imageLoad(object_id_image, viewport_pos).r;
+    if (center_id != push_constants.selected_object_index) {
+        return;
+    }
+
+    const int radius = 2;
+    bool is_edge = false;
+    for (int dx = -radius; dx <= radius; dx++) {
+        for (int dy = -radius; dy <= radius; dy++) {
+            if (dx == 0 && dy == 0) continue;
+
+            ivec2 neighbour = viewport_pos + ivec2(dx, dy);
+            if (neighbour.x < 0 || neighbour.y < 0 || neighbour.x >= image_size.x || neighbour.y >= image_size.y) {
+                is_edge = true;
+                break;
+            }
+
+            int neighbour_id = imageLoad(object_id_image, neighbour).r;
+            if (neighbour_id != push_constants.selected_object_index) {
+                is_edge = true;
+                break;
+            }
+        }
+    }
+
+    if (is_edge) {
+        imageStore(storage_image, viewport_pos, vec4(1.0, 0.8, 0.0, 1.0));
+    }
+}
