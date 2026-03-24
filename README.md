@@ -2,9 +2,9 @@
 3D engine where the user, instead of using light and colors to see, uses raytracing to mimic sound-based methods.
 
 # Setup
-* Install Vulkan (1.4.328.0), glfw3 (3.4.1), glm (1.02) with vcpkg
+* Install Vulkan (1.4.328.0), glfw3 (3.4.1), glm (1.02), jolt (5.5.0) with vcpkg
 ```
-vcpkg install vulkan glfw3 glm
+vcpkg install vulkan glfw3 glm joltphysics
 ```
 * Create a `/build` directory in the project folder and `cd` into it
 * Run:
