@@ -68,6 +68,10 @@ void Scene::parse_object_property(const char* buf) {
                 value = read_x_values(buf + 2, 1);
                 objects[objects.size() - 1]->properties.emitting = static_cast<int>(value.x);
                 return;
+            case 'b':
+                value = read_x_values(buf + 2, 1);
+                objects[objects.size() - 1]->properties.bullet = static_cast<int>(value.x);
+                return;
             default:
                 throw std::runtime_error("parse_object_property(): Incorrect object property format!");
         }
@@ -151,7 +155,8 @@ void Scene::load_scene_file() {
                     ptr[0] == 'r' ||
                     ptr[0] == 's' ||
                     ptr[0] == 'v' ||
-                    ptr[0] == 'e'
+                    ptr[0] == 'e' ||
+                    ptr[0] == 'b'
                 ) && ptr[1] == ' ' ||
                 ptr[0] == 'p' &&
                 (

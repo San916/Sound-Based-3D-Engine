@@ -115,7 +115,7 @@ void main() {
     vec3 hit_point = ray_origin + dist_from_surface * ray_dir;
 
     float intensity = 0.0;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 64; i++) {
         float wave_radius = ssbo.sound_waves[i].w;
         if (wave_radius < 0.0) continue;
         vec3 wave_origin = ssbo.sound_waves[i].xyz;
