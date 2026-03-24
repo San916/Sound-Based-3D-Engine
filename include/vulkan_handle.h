@@ -89,6 +89,7 @@ private:
     glm::vec2 camera_rotation = {90.0f, 0.0f};
     glm::vec2 last_mouse_position = {0.0f, 0.0f};
     bool q_held_down = false;
+    bool left_click_held = false;
     bool initial_mouse_position_set = false;
 
     int prev_frame = -1;

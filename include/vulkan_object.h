@@ -25,7 +25,9 @@ struct ObjectProperties {
 
     int physics_enabled = 1;
     float mass = 1.0f;
-
+    
+    int bullet = 0;
+    
     glm::mat4 get_model_matrix() const;
 };
 

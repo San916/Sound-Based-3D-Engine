@@ -2,10 +2,17 @@
 #define PHYSICS_H
 
 #include <iostream>
+#include <mutex>
+
+#include <unordered_set>
+#include <vector>
+
+#include <glm/glm.hpp>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -61,6 +68,34 @@ public:
     }
 };
 
+class BulletContactListener : public JPH::ContactListener {
+public:
+    std::unordered_set<JPH::uint32> bullet_ids;
+    std::mutex mutex;
+    std::vector<glm::vec3> collision_positions;
+
+    void OnContactAdded(
+        const JPH::Body& body1, const JPH::Body& body2,
+        const JPH::ContactManifold& manifold,
+        JPH::ContactSettings&
+    ) override {
+        if (!bullet_ids.count(body1.GetID().GetIndexAndSequenceNumber()) && !bullet_ids.count(body2.GetID().GetIndexAndSequenceNumber())) return;
+
+        JPH::Vec3 rel_vel = body1.GetLinearVelocity() - body2.GetLinearVelocity();
+        float impact_speed = abs(rel_vel.Dot(manifold.mWorldSpaceNormal));
+        if (impact_speed < 2.0f) return;
+        
+        bool bullet_is_body1 = bullet_ids.count(body1.GetID().GetIndexAndSequenceNumber());
+        JPH::Vec3 pos = bullet_is_body1 ? manifold.GetWorldSpaceContactPointOn1(0) : manifold.GetWorldSpaceContactPointOn2(0);
+
+        JPH::Vec3 normal = bullet_is_body1 ? manifold.mWorldSpaceNormal : -manifold.mWorldSpaceNormal;
+        glm::vec3 collision_pos = glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()) + 0.01f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+
+        std::lock_guard<std::mutex> lock(mutex);
+        collision_positions.push_back(collision_pos);
+    }
+};
+
 class PhysicsHandle {
 private:
     const JPH::uint physics_max_bodies = 1024;
@@ -70,10 +105,14 @@ private:
     BPLayerInterface bp_layer_interface;
     ObjVsBPLayerFilter obj_vs_bp_layer_filter;
     ObjVsObjFilter obj_vs_obj_filter;
+    BulletContactListener bullet_contact_listener;
     JPH::TempAllocatorImpl* physics_temp_allocator = nullptr;
     JPH::JobSystemThreadPool* physics_job_system = nullptr;
     JPH::PhysicsSystem* physics_system = nullptr;
     std::vector<JPH::BodyID> physics_body_ids;
+    std::vector<JPH::BodyID> bullet_body_ids;
+    std::vector<size_t> bullet_object_indices;
+    size_t next_bullet = 0;
     JPH::BodyInterface* body_interface = nullptr;
 public:
     PhysicsHandle();
@@ -82,8 +121,9 @@ public:
     PhysicsHandle(const PhysicsHandle&) = delete;
     PhysicsHandle& operator=(const PhysicsHandle&) = delete;
 
-    void update(float delta_time, const std::vector<VulkanObject*> objects);
+    std::vector<glm::vec3> update(float delta_time, const std::vector<VulkanObject*> objects);
     void load_object_physics(const std::vector<VulkanObject*> objects);
+    void fire_bullet(glm::vec3 position, glm::vec3 direction, const std::vector<VulkanObject*>& objects);
 };
 
 #endif

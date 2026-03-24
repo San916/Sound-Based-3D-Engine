@@ -491,9 +491,19 @@ void VulkanHandle::run() {
         }
         q_held_down = q_pressed;
 
+        bool left_click = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        if (left_click && !left_click_held) {
+            physics_handle->fire_bullet(camera_position, forward, objects);
+        }
+        left_click_held = left_click;
+
         glfwPollEvents();
 
-        physics_handle->update(delta_time / 5.0f, objects);
+        std::vector<glm::vec3> collisions = physics_handle->update(delta_time / 5.0f, objects);
+        for (const glm::vec3& pos : collisions) {
+            if (sound_waves.size() < MAX_SOUND_WAVES)
+                sound_waves.push_back(glm::vec4(pos, 0.0f));
+        }
         draw_frame();
     }
     vkDeviceWaitIdle(logical_device);

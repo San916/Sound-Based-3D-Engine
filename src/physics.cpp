@@ -20,6 +20,7 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 PhysicsHandle::PhysicsHandle() {
     JPH::RegisterDefaultAllocator();
@@ -35,6 +36,7 @@ PhysicsHandle::PhysicsHandle() {
     );
 
     physics_system->SetGravity(JPH::Vec3(0.0f, -9.81f, 0.0f));
+    physics_system->SetContactListener(&bullet_contact_listener);
 }
 
 PhysicsHandle::~PhysicsHandle() {
@@ -49,9 +51,10 @@ PhysicsHandle::~PhysicsHandle() {
 // MODIFIES: this->body_interface
 // EFFECTS: Adds the objects into the physics engine
 //     For each object, use the properties to determine the settings of the physics body creation
-//     Constructs a simple box fit for a 1x1x1 cube
 //     If mass = 0.0, the object is static, otherwise dynamic, with the given mass
-//     Constructs a ground as it doesnt exist in objects
+//     For static objects, and thus we can use a meshshape for accurate static geometry
+//     For dynamic objects, use spheres for bullets, and convex hulls otherwise
+//     Creates a ground as it doesnt exist in objects
 void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects) {
     body_interface = &physics_system->GetBodyInterface();
 
@@ -65,15 +68,20 @@ void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects
 
         JPH::ShapeRefC shape;
         if (is_dynamic) {
-            JPH::ConvexHullShapeSettings hull;
-            for (const auto& vertex : obj->get_vertices()) {
-                hull.mPoints.push_back(JPH::Vec3(
-                    vertex.pos.x * properties.scale.x,
-                    vertex.pos.y * properties.scale.y,
-                    vertex.pos.z * properties.scale.z
-                ));
+            if (properties.bullet) {
+                JPH::SphereShapeSettings sphere(properties.scale.x);
+                shape = sphere.Create().Get();
+            } else {
+                JPH::ConvexHullShapeSettings hull;
+                for (const auto& vertex : obj->get_vertices()) {
+                    hull.mPoints.push_back(JPH::Vec3(
+                        vertex.pos.x * properties.scale.x,
+                        vertex.pos.y * properties.scale.y,
+                        vertex.pos.z * properties.scale.z
+                    ));
+                }
+                shape = hull.Create().Get();
             }
-            shape = hull.Create().Get();
         } else {
             JPH::TriangleList triangles;
             const auto& vertices = obj->get_vertices();
@@ -104,9 +112,16 @@ void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects
 
         JPH::BodyID body_id = body_interface->CreateAndAddBody(settings, JPH::EActivation::Activate);
 
-        body_interface->SetRestitution(body_id, 1.0f);
+        body_interface->SetRestitution(body_id, 0.5f);
 
         physics_body_ids.push_back(body_id);
+        if (properties.bullet) {
+            bullet_body_ids.push_back(body_id);
+            bullet_object_indices.push_back(physics_body_ids.size() - 1);
+            bullet_contact_listener.bullet_ids.insert(body_id.GetIndexAndSequenceNumber());
+            body_interface->SetPosition(body_id, JPH::RVec3(0.0f, -1000.0f, 0.0f), JPH::EActivation::DontActivate);
+            body_interface->DeactivateBody(body_id);
+        }
     }
 
     JPH::BoxShapeSettings ground_shape(JPH::Vec3(100.0f, 1.0f, 100.0f));
@@ -120,9 +135,27 @@ void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects
     body_interface->CreateAndAddBody(ground_settings, JPH::EActivation::DontActivate);
 }
 
+void PhysicsHandle::fire_bullet(glm::vec3 position, glm::vec3 direction, const std::vector<VulkanObject*>& objects) {
+    if (bullet_body_ids.empty()) return;
+
+    size_t slot = next_bullet % bullet_body_ids.size();
+    next_bullet++;
+
+    JPH::BodyID id = bullet_body_ids[slot];
+    objects[bullet_object_indices[slot]]->properties.visible = 1;
+
+    const float bullet_speed = 50.0f;
+    glm::vec3 velocity = glm::normalize(direction) * bullet_speed;
+
+    body_interface->SetPosition(id, JPH::RVec3(position.x, position.y, position.z), JPH::EActivation::Activate);
+    body_interface->SetLinearVelocity(id, JPH::Vec3(velocity.x, velocity.y, velocity.z));
+    body_interface->SetAngularVelocity(id, JPH::Vec3(0.0f, 0.0f, 0.0f));
+}
+
 // MODIFIES: this, objects
 // EFFECTS: Updates the physics engine, then sets each objects properties using the updated values
-void PhysicsHandle::update(float delta_time, const std::vector<VulkanObject*> objects) {
+//     Returns positions of any bullet collisions that occurred this frame
+std::vector<glm::vec3> PhysicsHandle::update(float delta_time, const std::vector<VulkanObject*> objects) {
     physics_system->Update(delta_time, 5, physics_temp_allocator, physics_job_system);
 
     for (size_t i = 0; i < objects.size(); i++) {
@@ -135,4 +168,11 @@ void PhysicsHandle::update(float delta_time, const std::vector<VulkanObject*> ob
         objects[i]->properties.rotation = glm::degrees(glm::eulerAngles(glm_rotation));
         objects[i]->properties.position = glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ());
     }
+
+    std::vector<glm::vec3> collisions;
+    {
+        std::lock_guard<std::mutex> lock(bullet_contact_listener.mutex);
+        collisions.swap(bullet_contact_listener.collision_positions);
+    }
+    return collisions;
 }

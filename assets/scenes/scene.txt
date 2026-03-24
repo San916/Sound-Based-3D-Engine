@@ -10,3 +10,18 @@ s 0.5 0.5 0.5
 v 1
 pe 1
 pm 1.0
+
+o ./../assets/models/sphere.obj
+s 0.1 0.1 0.1
+v 0
+b 1
+
+o ./../assets/models/sphere.obj
+s 0.1 0.1 0.1
+v 0
+b 1
+
+o ./../assets/models/sphere.obj
+s 0.1 0.1 0.1
+v 0
+b 1
