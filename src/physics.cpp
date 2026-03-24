@@ -45,6 +45,12 @@ PhysicsHandle::~PhysicsHandle() {
     JPH::Factory::sInstance = nullptr;
 }
 
+// MODIFIES: this->body_interface
+// EFFECTS: Adds the objects into the physics engine
+//     For each object, use the properties to determine the settings of the physics body creation
+//     Constructs a simple box fit for a 1x1x1 cube
+//     If mass = 0.0, the object is static, otherwise dynamic, with the given mass
+//     Constructs a ground as it doesnt exist in objects
 void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects) {
     body_interface = &physics_system->GetBodyInterface();
 
@@ -85,6 +91,8 @@ void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects
     body_interface->CreateAndAddBody(ground_settings, JPH::EActivation::DontActivate);
 }
 
+// MODIFIES: this, objects
+// EFFECTS: Updates the physics engine, then sets each objects properties using the updated values
 void PhysicsHandle::update(float delta_time, const std::vector<VulkanObject*> objects) {
     physics_system->Update(delta_time, 2, physics_temp_allocator, physics_job_system);
 
