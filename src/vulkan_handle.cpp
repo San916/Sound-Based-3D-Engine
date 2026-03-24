@@ -28,6 +28,8 @@
 #include <vulkan_vertex_buffer.h>
 #include <vulkan_window.h>
 
+#include <physics.h>
+
 #ifdef NDEBUG
     const bool enable_validation_layers = false;
 #else
@@ -219,6 +221,8 @@ void VulkanHandle::draw_frame() {
 
 VulkanHandle::VulkanHandle() {
     setup_window(window, this, mouse_callback);
+    physics_handle = new PhysicsHandle();
+    
     init_vulkan();
     if (enable_validation_layers) {
         setup_debug_messenger(vk_instance, debug_messenger);
@@ -261,6 +265,8 @@ VulkanHandle::VulkanHandle() {
     scene = new Scene("./../assets/scenes/scene.txt", logical_device, physical_device, command_pool, graphics_queue);
     const std::vector<VulkanObject*> objects = scene->get_objects();
 
+    physics_handle->load_object_physics(objects);
+
     std::vector<VkAccelerationStructureKHR> blases;
     std::vector<ObjectProperties> properties;
     for (size_t i = 0; i < objects.size(); i++) {
@@ -294,14 +300,14 @@ VulkanHandle::VulkanHandle() {
     create_post_process_descriptor_pool(logical_device, MAX_FRAMES_IN_FLIGHT, post_process_descriptor_pool);
 
     create_graphics_descriptor_sets(
-        logical_device, 
-        MAX_FRAMES_IN_FLIGHT, 
-        graphics_descriptor_pool, 
-        storage_image_sampler, 
-        storage_image_view, 
-        uniform_buffers, 
+        logical_device,
+        MAX_FRAMES_IN_FLIGHT,
+        graphics_descriptor_pool,
+        storage_image_sampler,
+        storage_image_view,
+        uniform_buffers,
         storage_buffers,
-        graphics_descriptor_set_layout, 
+        graphics_descriptor_set_layout,
         graphics_descriptor_sets
     );
     create_compute_descriptor_sets(
@@ -328,7 +334,10 @@ VulkanHandle::VulkanHandle() {
     create_command_buffers(logical_device, command_pool, command_buffers, MAX_FRAMES_IN_FLIGHT);
     create_sync_objects();
 }
+
 VulkanHandle::~VulkanHandle() {
+    delete physics_handle;
+
     if (enable_validation_layers) {
         destroy_debug_messenger(vk_instance, debug_messenger);
     }
@@ -483,6 +492,8 @@ void VulkanHandle::run() {
         q_held_down = q_pressed;
 
         glfwPollEvents();
+
+        physics_handle->update(delta_time / 5.0f, objects);
         draw_frame();
     }
     vkDeviceWaitIdle(logical_device);

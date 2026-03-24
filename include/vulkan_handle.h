@@ -13,6 +13,8 @@
 #include <vulkan_scene.h>
 #include <vulkan_vertex_buffer.h>
 
+#include <physics.h>
+
 class VulkanHandle {
 private:
     GLFWwindow* window;
@@ -95,9 +97,14 @@ private:
     std::vector<VkSemaphore> render_semaphores;
     std::vector<VkFence> frame_fences;
 
+    PhysicsHandle* physics_handle;
+
+
     void init_vulkan();
+    void setup_physics();
     void create_sync_objects();
     void draw_frame();
+    void cleanup_physics();
     static void mouse_callback(GLFWwindow* window, double x_pos, double y_pos);
 public:
     VulkanHandle();

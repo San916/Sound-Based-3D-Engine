@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
+find_package(Jolt REQUIRED)
 
 set(VERT_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader.vert)
 set(FRAG_SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/shader.frag)
@@ -43,6 +44,7 @@ add_custom_target(compile_shaders ALL DEPENDS ${VERT_SPV_OUTPUT} ${FRAG_SPV_OUTP
 
 set(SOURCES
     src/main.cpp
+    src/physics.cpp
     src/vulkan_acceleration_structure.cpp
     src/vulkan_command_buffer.cpp
     src/vulkan_compute_pipeline.cpp
@@ -83,4 +85,5 @@ target_link_libraries(Engine
         Vulkan::Vulkan
         glfw
         glm::glm
+        Jolt::Jolt
 )

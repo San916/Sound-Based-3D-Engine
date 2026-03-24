@@ -23,6 +23,9 @@ struct ObjectProperties {
     float emit_cooldown = 0.0f;
     float emit_interval = 0.5f;
 
+    int physics_enabled = 1;
+    float mass = 1.0f;
+
     glm::mat4 get_model_matrix() const;
 };
 
