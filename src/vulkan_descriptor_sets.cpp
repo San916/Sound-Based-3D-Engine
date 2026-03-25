@@ -416,7 +416,7 @@ void create_compute_descriptor_sets(
 
 // MODIFIES: post_process_descriptor_set_layout
 // EFFECTS: Creates a descriptor set layout for the post-process pipeline and returns it
-//     Binds: storage image, object id image
+//     Binds: storage image, object id image, accumulation image
 void create_post_process_descriptor_set_layout(VkDevice logical_device, VkDescriptorSetLayout& post_process_descriptor_set_layout) {
     VkDescriptorSetLayoutBinding storage_image_binding{};
     storage_image_binding.binding = 0;
@@ -432,8 +432,15 @@ void create_post_process_descriptor_set_layout(VkDevice logical_device, VkDescri
     object_id_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     object_id_image_binding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding accumulation_image_binding{};
+    accumulation_image_binding.binding = 2;
+    accumulation_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    accumulation_image_binding.descriptorCount = 1;
+    accumulation_image_binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    accumulation_image_binding.pImmutableSamplers = nullptr;
+
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
-        storage_image_binding, object_id_image_binding
+        storage_image_binding, object_id_image_binding, accumulation_image_binding
     };
 
     create_descriptor_set_layout(logical_device, bindings, post_process_descriptor_set_layout);
@@ -450,7 +457,11 @@ void create_post_process_descriptor_pool(VkDevice logical_device, size_t max_fra
     object_id_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     object_id_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
 
-    std::vector<VkDescriptorPoolSize> pool_sizes = {storage_image_size, object_id_image_size};
+    VkDescriptorPoolSize accumulation_image_size{};
+    accumulation_image_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    accumulation_image_size.descriptorCount = static_cast<uint32_t>(max_frames_in_flight);
+
+    std::vector<VkDescriptorPoolSize> pool_sizes = {storage_image_size, object_id_image_size, accumulation_image_size};
 
     VkDescriptorPoolCreateInfo descriptor_pool_create_info{};
     descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -469,12 +480,14 @@ void create_post_process_descriptor_pool(VkDevice logical_device, size_t max_fra
 // EFFECTS: Allocates post-process descriptor sets and writes the resources into each descriptor set with unique bindings
 //     Writes the storage image (allows writing into) in binding 0 of each descriptor set
 //     Writes the object id image (allows writing into but we only read, because we cant use sampler for this image format) in binding 1
+//     Writes the accumulation image (read + write for temporal blending) in binding 2
 void create_post_process_descriptor_sets(
     VkDevice logical_device,
     size_t max_frames_in_flight,
     VkDescriptorPool post_process_descriptor_pool,
     const VkImageView storage_image_view,
     const VkImageView object_id_image_view,
+    const VkImageView accumulation_image_view,
     const VkDescriptorSetLayout& post_process_descriptor_set_layout,
     std::vector<VkDescriptorSet>& post_process_descriptor_sets
 ) {
@@ -512,12 +525,29 @@ void create_post_process_descriptor_sets(
     object_id_image_write.pBufferInfo = nullptr;
     object_id_image_write.pTexelBufferView = nullptr;
 
+    VkDescriptorImageInfo accumulation_image_info{};
+    accumulation_image_info.sampler = nullptr;
+    accumulation_image_info.imageView = accumulation_image_view;
+    accumulation_image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet accumulation_image_write{};
+    accumulation_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    accumulation_image_write.pNext = nullptr;
+    accumulation_image_write.dstBinding = 2;
+    accumulation_image_write.dstArrayElement = 0;
+    accumulation_image_write.descriptorCount = 1;
+    accumulation_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    accumulation_image_write.pImageInfo = &accumulation_image_info;
+    accumulation_image_write.pBufferInfo = nullptr;
+    accumulation_image_write.pTexelBufferView = nullptr;
+
     for (size_t i = 0; i < max_frames_in_flight; i++) {
         storage_image_write.dstSet = post_process_descriptor_sets[i];
-
         object_id_image_write.dstSet = post_process_descriptor_sets[i];
+        
+        accumulation_image_write.dstSet = post_process_descriptor_sets[i];
 
-        std::vector<VkWriteDescriptorSet> writes = {storage_image_write, object_id_image_write};
+        std::vector<VkWriteDescriptorSet> writes = {storage_image_write, object_id_image_write, accumulation_image_write};
 
         vkUpdateDescriptorSets(logical_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
     }

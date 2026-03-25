@@ -11,6 +11,7 @@
 
 #include <vulkan_index_buffer.h>
 #include <vulkan_scene.h>
+#include <vulkan_storage_buffer.h>
 #include <vulkan_vertex_buffer.h>
 
 #include <physics.h>
@@ -77,10 +78,14 @@ private:
     VkImageView object_id_image_view;
     VkFormat object_id_image_format;
 
+    VkImage accumulation_image;
+    VkDeviceMemory accumulation_image_memory;
+    VkImageView accumulation_image_view;
+
     std::vector<VkBuffer> storage_buffers;
     std::vector<VkDeviceMemory> storage_buffers_memory;
     std::vector<void*> storage_buffers_mapped;
-    std::vector<glm::vec4> sound_waves;
+    std::vector<SoundWave> sound_waves;
 
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;

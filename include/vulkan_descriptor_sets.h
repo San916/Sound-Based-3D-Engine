@@ -42,6 +42,7 @@ void create_post_process_descriptor_sets(
     VkDescriptorPool post_process_descriptor_pool,
     const VkImageView storage_image_view,
     const VkImageView object_id_image_view,
+    const VkImageView accumulation_image_view,
     const VkDescriptorSetLayout& post_process_descriptor_set_layout,
     std::vector<VkDescriptorSet>& post_process_descriptor_sets
 );
