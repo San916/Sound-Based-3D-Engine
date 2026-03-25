@@ -10,8 +10,6 @@ layout(binding = 0, rgba8) uniform image2D storage_image;
 
 layout(binding = 1, r32i) uniform iimage2D object_id_image;
 
-layout(binding = 2, rgba16f) uniform image2D accumulation_image;
-
 void main() {
     ivec2 viewport_pos = ivec2(gl_GlobalInvocationID.xy);
     ivec2 image_size = imageSize(storage_image);

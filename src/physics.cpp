@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 
 #include <vector>
 
@@ -7,6 +8,8 @@
 #include <physics.h>
 
 #include <Jolt/Jolt.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
@@ -150,6 +153,30 @@ void PhysicsHandle::fire_bullet(glm::vec3 position, glm::vec3 direction, const s
     body_interface->SetPosition(id, JPH::RVec3(position.x, position.y, position.z), JPH::EActivation::Activate);
     body_interface->SetLinearVelocity(id, JPH::Vec3(velocity.x, velocity.y, velocity.z));
     body_interface->SetAngularVelocity(id, JPH::Vec3(0.0f, 0.0f, 0.0f));
+}
+
+// EFFECTS: 
+//     Creates num_rays uniformy distributed quasi-random rays using fibonacci sphere 
+//     Returns up to num_rays hit positions within max_dist, which will be act as sound wave reflections.
+std::vector<glm::vec3> PhysicsHandle::find_reflection_points(glm::vec3 origin, int num_rays, float max_dist) {
+    const JPH::NarrowPhaseQuery& query = physics_system->GetNarrowPhaseQuery();
+    std::vector<glm::vec3> points;
+
+    const float golden_ratio = 1.618f;
+    for (int i = 0; i < num_rays; i++) {
+        float theta = std::acos(1.0f - (2.0f * (i + 0.5f) / num_rays));
+        float phi = 2.0f * 3.1415f * i / golden_ratio;
+
+        glm::vec3 ray_dir(std::sin(theta) * std::cos(phi), std::cos(theta), std::sin(theta) * std::sin(phi));
+
+        JPH::RRayCast ray(JPH::RVec3(origin.x, origin.y, origin.z), JPH::Vec3(ray_dir.x, ray_dir.y, ray_dir.z) * max_dist);
+        JPH::RayCastResult hit;
+        if (query.CastRay(ray, hit)) {
+            JPH::RVec3 hit_pos = ray.GetPointOnRay(hit.mFraction);
+            points.push_back(glm::vec3(hit_pos.GetX(), hit_pos.GetY(), hit_pos.GetZ()));
+        }
+    }
+    return points;
 }
 
 // MODIFIES: this, objects

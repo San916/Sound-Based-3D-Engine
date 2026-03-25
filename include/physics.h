@@ -124,6 +124,7 @@ public:
     std::vector<glm::vec3> update(float delta_time, const std::vector<VulkanObject*> objects);
     void load_object_physics(const std::vector<VulkanObject*> objects);
     void fire_bullet(glm::vec3 position, glm::vec3 direction, const std::vector<VulkanObject*>& objects);
+    std::vector<glm::vec3> find_reflection_points(glm::vec3 origin, int num_rays, float max_dist);
 };
 
 #endif

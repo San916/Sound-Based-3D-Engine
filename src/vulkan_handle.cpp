@@ -261,15 +261,6 @@ VulkanHandle::VulkanHandle() {
         object_id_image, object_id_image_memory,
         object_id_image_view
     );
-    create_storage_image(
-        logical_device, physical_device,
-        command_pool, graphics_queue,
-        swap_chain_extent,
-        VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT,
-        accumulation_image, accumulation_image_memory,
-        accumulation_image_view
-    );
-    init_storage_image(logical_device, command_pool, graphics_queue, accumulation_image);
 
     scene = new Scene("./../assets/scenes/scene.txt", logical_device, physical_device, command_pool, graphics_queue);
     const std::vector<VulkanObject*> objects = scene->get_objects();
@@ -337,7 +328,6 @@ VulkanHandle::VulkanHandle() {
         post_process_descriptor_pool,
         storage_image_view,
         object_id_image_view,
-        accumulation_image_view,
         post_process_descriptor_set_layout,
         post_process_descriptor_sets
     );
@@ -377,7 +367,6 @@ VulkanHandle::~VulkanHandle() {
 
     cleanup_storage_image(logical_device, storage_image, storage_image_memory, storage_image_view);
     cleanup_storage_image(logical_device, object_id_image, object_id_image_memory, object_id_image_view);
-    cleanup_storage_image(logical_device, accumulation_image, accumulation_image_memory, accumulation_image_view);
 
     delete scene;
 
@@ -418,6 +407,21 @@ VulkanHandle::~VulkanHandle() {
     glfwDestroyWindow(window);
     glfwTerminate();
 }
+
+// MODIFIES: this->sound_waves
+// EFFECTS:
+//     Creates a sound wave at position, then fetches ahead of time sound_wave_branching_factor reflections
+//     These sound waves start at radius equal to the negative of the distance between sound wave origin and reflected wave origin,
+//         so they 'start' propagating when the sound wave reaches the reflected point
+void VulkanHandle::spawn_wave(glm::vec3 position) {
+    if (sound_waves.size() < MAX_SOUND_WAVES) sound_waves.push_back({glm::vec4(position, 0.0f), 1.0f});
+
+    std::vector<glm::vec3> reflections = physics_handle->find_reflection_points(position, 8, 20.0f);
+    for (const glm::vec3& reflection : reflections) {
+        if (sound_waves.size() >= MAX_SOUND_WAVES) break;
+        sound_waves.push_back({glm::vec4(reflection, -glm::distance(position, reflection)), 0.3f});
+    }
+};
 
 void VulkanHandle::run() {
     auto previous_time = std::chrono::high_resolution_clock::now();
@@ -474,28 +478,29 @@ void VulkanHandle::run() {
         }
 
         for (size_t i = 0; i < sound_waves.size(); i++) {
-            sound_waves[i].data.w += delta_time * 6.0f;
+            sound_waves[i].data.w += delta_time * 30.0f;
         }
         sound_waves.erase(
             std::remove_if(sound_waves.begin(), sound_waves.end(),
-                [](const SoundWave& sound_wave) { return sound_wave.data.w > 20.0f; }
+                [](const SoundWave& sound_wave) { return sound_wave.data.w > 60.0f; }
             ),
             sound_waves.end()
         );
+
 
         std::vector<VulkanObject*> objects = scene->get_objects();
         for (VulkanObject* obj : objects) {
             if (!obj->properties.emitting) continue;
             obj->properties.emit_cooldown -= delta_time;
             if (obj->properties.emit_cooldown <= 0.0f) {
-                if (sound_waves.size() < MAX_SOUND_WAVES) sound_waves.push_back({glm::vec4(obj->properties.position, 0.0f), 1.0f});
+                spawn_wave(obj->properties.position);
                 obj->properties.emit_cooldown = obj->properties.emit_interval;
             }
         }
 
         bool q_pressed = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
         if (q_pressed && !q_held_down) {
-            if (sound_waves.size() < MAX_SOUND_WAVES) sound_waves.push_back({glm::vec4(camera_position, 0.0f), 1.0f});
+            spawn_wave(camera_position);
         }
         q_held_down = q_pressed;
 
@@ -508,8 +513,8 @@ void VulkanHandle::run() {
         glfwPollEvents();
 
         std::vector<glm::vec3> collisions = physics_handle->update(delta_time / 5.0f, objects);
-        for (const glm::vec3& pos : collisions) {
-            if (sound_waves.size() < MAX_SOUND_WAVES) sound_waves.push_back({glm::vec4(pos, 0.0f), 1.0f});
+        for (const glm::vec3& collision_pos : collisions) {
+            spawn_wave(collision_pos);
         }
 
         draw_frame();

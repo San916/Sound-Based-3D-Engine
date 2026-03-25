@@ -1,7 +1,7 @@
 #ifndef VULKAN_STORAGE_BUFFER_H
 #define VULKAN_STORAGE_BUFFER_H
 
-#define MAX_SOUND_WAVES 256
+#define MAX_SOUND_WAVES 1024
 #define MAX_OBJECTS 16
 
 #include <iostream>

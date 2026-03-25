@@ -78,14 +78,11 @@ private:
     VkImageView object_id_image_view;
     VkFormat object_id_image_format;
 
-    VkImage accumulation_image;
-    VkDeviceMemory accumulation_image_memory;
-    VkImageView accumulation_image_view;
-
     std::vector<VkBuffer> storage_buffers;
     std::vector<VkDeviceMemory> storage_buffers_memory;
     std::vector<void*> storage_buffers_mapped;
     std::vector<SoundWave> sound_waves;
+    const int sound_wave_branching_factor = 8;
 
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
@@ -112,6 +109,7 @@ private:
     void draw_frame();
     void cleanup_physics();
     static void mouse_callback(GLFWwindow* window, double x_pos, double y_pos);
+    void spawn_wave(glm::vec3 position);
 public:
     VulkanHandle();
     VulkanHandle(const VulkanHandle&) = delete;
