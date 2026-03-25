@@ -26,6 +26,7 @@ struct StorageBufferObject {
     int visible[MAX_OBJECTS];
     int emitting[MAX_OBJECTS];
     int selected_object_index = -1;
+    int num_sound_waves = 0;
 };
 
 void create_storage_buffers(

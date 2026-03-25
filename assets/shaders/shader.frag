@@ -15,6 +15,7 @@ layout(binding = 2) readonly buffer StorageBufferObject {
     int visible[16];
     int emitting[16];
     int selected_object_index;
+    int num_sound_waves;
 } ssbo;
 
 layout(location = 1) in vec3 fragColor;

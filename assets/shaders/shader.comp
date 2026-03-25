@@ -20,6 +20,7 @@ layout(binding = 3) buffer StorageBufferObject {
     int visible[16];
     int emitting[16];
     int selected_object_index;
+    int num_sound_waves;
 } ssbo;
 
 layout(binding = 4, r32i) uniform iimage2D object_id_image;
@@ -116,7 +117,9 @@ void main() {
     vec3 hit_point = ray_origin + dist_from_surface * ray_dir;
 
     float intensity = 0.0;
-    for (int i = 0; i < 1024; i++) {
+    for (int i = 0; i < ssbo.num_sound_waves && i < 1024; i++) {
+        if (intensity >= 1.0) break;
+        
         float wave_radius = ssbo.sound_waves[i].w;
         if (wave_radius < 0.0) continue;
         vec3 wave_origin = ssbo.sound_waves[i].xyz;
@@ -132,9 +135,12 @@ void main() {
         float decay_val = exp(-(wave_radius - total_path) * 0.3);
         if (decay_val < 0.005) continue;
 
+        float contribution = clamp(2.0 / (total_path * total_path), 0.0, decay_val) * ssbo.amplitudes[i];
+        if (contribution < 0.001) continue;
+
         if (is_ray_obstructed(wave_origin, hit_point)) continue;
 
-        intensity += clamp(2.0 / (total_path * total_path), 0.0, decay_val) * ssbo.amplitudes[i];
+        intensity += contribution;
     }
 
     if (intensity > 0.0) {

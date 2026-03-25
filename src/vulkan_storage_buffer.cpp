@@ -65,6 +65,7 @@ void update_storage_buffer(
         storage_buffer.sound_waves[i] = (i < sound_waves.size()) ? sound_waves[i].data : glm::vec4(0.0f, 0.0f, 0.0f, -1.0f);
         storage_buffer.amplitudes[i] = (i < sound_waves.size()) ? sound_waves[i].amplitude : 0.0f;
     }
+    storage_buffer.num_sound_waves = static_cast<int>(sound_waves.size());
 
     memcpy(storage_buffers_mapped[frame_index], &storage_buffer, sizeof(storage_buffer));
 }
