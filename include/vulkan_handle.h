@@ -109,7 +109,7 @@ private:
     void draw_frame();
     void cleanup_physics();
     static void mouse_callback(GLFWwindow* window, double x_pos, double y_pos);
-    void spawn_wave(glm::vec3 position);
+    void spawn_wave(glm::vec3 position, int emitting_obj_id);
 public:
     VulkanHandle();
     VulkanHandle(const VulkanHandle&) = delete;

@@ -12,6 +12,7 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
@@ -96,6 +97,14 @@ public:
     }
 };
 
+class IgnoreBodyFilter : public JPH::BodyFilter {
+public:
+    JPH::BodyID ignored_id;
+    IgnoreBodyFilter(JPH::BodyID id) : ignored_id(id) {}
+    bool ShouldCollide(const JPH::BodyID& body_id) const override { return body_id != ignored_id; }
+    bool ShouldCollideLocked(const JPH::Body&) const override { return true; }
+};
+
 class PhysicsHandle {
 private:
     const JPH::uint physics_max_bodies = 1024;
@@ -124,7 +133,7 @@ public:
     std::vector<glm::vec3> update(float delta_time, const std::vector<VulkanObject*> objects);
     void load_object_physics(const std::vector<VulkanObject*> objects);
     void fire_bullet(glm::vec3 position, glm::vec3 direction, const std::vector<VulkanObject*>& objects);
-    std::vector<glm::vec3> find_reflection_points(glm::vec3 origin, int num_rays, float max_dist);
+    std::vector<glm::vec3> find_reflection_points(glm::vec3 origin, int num_rays, float max_dist, int obj_to_ignore);
 };
 
 #endif

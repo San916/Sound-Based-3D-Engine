@@ -413,10 +413,10 @@ VulkanHandle::~VulkanHandle() {
 //     Creates a sound wave at position, then fetches ahead of time sound_wave_branching_factor reflections
 //     These sound waves start at radius equal to the negative of the distance between sound wave origin and reflected wave origin,
 //         so they 'start' propagating when the sound wave reaches the reflected point
-void VulkanHandle::spawn_wave(glm::vec3 position) {
+void VulkanHandle::spawn_wave(glm::vec3 position, int emitting_obj_id = -1) {
     if (sound_waves.size() < MAX_SOUND_WAVES) sound_waves.push_back({glm::vec4(position, 0.0f), 1.0f});
 
-    std::vector<glm::vec3> reflections = physics_handle->find_reflection_points(position, 8, 20.0f);
+    std::vector<glm::vec3> reflections = physics_handle->find_reflection_points(position, 8, 20.0f, emitting_obj_id);
     for (const glm::vec3& reflection : reflections) {
         if (sound_waves.size() >= MAX_SOUND_WAVES) break;
         sound_waves.push_back({glm::vec4(reflection, -glm::distance(position, reflection)), 0.3f});
@@ -489,11 +489,12 @@ void VulkanHandle::run() {
 
 
         std::vector<VulkanObject*> objects = scene->get_objects();
-        for (VulkanObject* obj : objects) {
+        for (size_t i = 0; i < objects.size(); i++) {
+            VulkanObject* obj = objects[i];
             if (!obj->properties.emitting) continue;
             obj->properties.emit_cooldown -= delta_time;
             if (obj->properties.emit_cooldown <= 0.0f) {
-                spawn_wave(obj->properties.position);
+                spawn_wave(obj->properties.position, static_cast<int>(i));
                 obj->properties.emit_cooldown = obj->properties.emit_interval;
             }
         }

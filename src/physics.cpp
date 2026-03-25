@@ -8,13 +8,14 @@
 #include <physics.h>
 
 #include <Jolt/Jolt.h>
-#include <Jolt/Physics/Collision/RayCast.h>
-#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -115,7 +116,7 @@ void PhysicsHandle::load_object_physics(const std::vector<VulkanObject*> objects
 
         JPH::BodyID body_id = body_interface->CreateAndAddBody(settings, JPH::EActivation::Activate);
 
-        body_interface->SetRestitution(body_id, 0.5f);
+        body_interface->SetRestitution(body_id, 0.25f);
 
         physics_body_ids.push_back(body_id);
         if (properties.bullet) {
@@ -158,9 +159,11 @@ void PhysicsHandle::fire_bullet(glm::vec3 position, glm::vec3 direction, const s
 // EFFECTS: 
 //     Creates num_rays uniformy distributed quasi-random rays using fibonacci sphere 
 //     Returns up to num_rays hit positions within max_dist, which will be act as sound wave reflections.
-std::vector<glm::vec3> PhysicsHandle::find_reflection_points(glm::vec3 origin, int num_rays, float max_dist) {
+std::vector<glm::vec3> PhysicsHandle::find_reflection_points(glm::vec3 origin, int num_rays, float max_dist, int obj_to_ignore = -1) {
     const JPH::NarrowPhaseQuery& query = physics_system->GetNarrowPhaseQuery();
     std::vector<glm::vec3> points;
+    bool has_filter = obj_to_ignore >= 0 && obj_to_ignore < (int)physics_body_ids.size();
+    IgnoreBodyFilter body_filter(has_filter ? physics_body_ids[obj_to_ignore] : JPH::BodyID());
 
     const float golden_ratio = 1.618f;
     for (int i = 0; i < num_rays; i++) {
@@ -171,7 +174,7 @@ std::vector<glm::vec3> PhysicsHandle::find_reflection_points(glm::vec3 origin, i
 
         JPH::RRayCast ray(JPH::RVec3(origin.x, origin.y, origin.z), JPH::Vec3(ray_dir.x, ray_dir.y, ray_dir.z) * max_dist);
         JPH::RayCastResult hit;
-        if (query.CastRay(ray, hit)) {
+        if (query.CastRay(ray, hit, JPH::BroadPhaseLayerFilter(), JPH::ObjectLayerFilter(), body_filter)) {
             JPH::RVec3 hit_pos = ray.GetPointOnRay(hit.mFraction);
             points.push_back(glm::vec3(hit_pos.GetX(), hit_pos.GetY(), hit_pos.GetZ()));
         }
