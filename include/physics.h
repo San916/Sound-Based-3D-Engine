@@ -96,8 +96,8 @@ public:
         JPH::Vec3 normal = manifold.mWorldSpaceNormal;
         glm::vec3 new_origin = glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ());
         
-        if (!body_1.IsStatic()) new_origin += 0.01f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
-        else if (!body_2.IsStatic()) new_origin -= 0.01f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+        if (!body_1.IsStatic()) new_origin += 0.1f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+        else if (!body_2.IsStatic()) new_origin -= 0.1f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
 
         float speed_1 = body_1.GetLinearVelocity().Length();
         float speed_2 = body_2.GetLinearVelocity().Length();

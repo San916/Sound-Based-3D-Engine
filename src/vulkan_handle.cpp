@@ -415,7 +415,7 @@ VulkanHandle::~VulkanHandle() {
 //         so they 'start' propagating when the sound wave reaches the reflected point
 void VulkanHandle::spawn_wave(glm::vec3 position, int ignore_index_1, int ignore_index_2, float amplitude) {
     if (sound_waves.size() < MAX_SOUND_WAVES) {
-        sound_waves.push_back({glm::vec4(position, 0.0f), 0.0f, ignore_index_1, ignore_index_2});
+        sound_waves.push_back({glm::vec4(position, 0.0f), amplitude, ignore_index_1, ignore_index_2});
     }
 
     std::vector<glm::vec3> reflections = physics_handle->find_reflection_points(position, sound_wave_branching_factor, 20.0f, ignore_index_1, ignore_index_2);
