@@ -4,14 +4,15 @@
 #include <iostream>
 #include <mutex>
 
-#include <unordered_set>
 #include <vector>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
@@ -68,36 +69,68 @@ public:
     }
 };
 
-class BulletContactListener : public JPH::ContactListener {
+class ObjContactListener : public JPH::ContactListener {
+private:
+    float kinetic_energy_to_amplitude = 0.0001f;
 public:
-    std::unordered_set<JPH::uint32> bullet_ids;
+    struct ContactEvent {
+        glm::vec3 position;
+        JPH::BodyID body_1;
+        JPH::BodyID body_2;
+        float amplitude;
+    };
+
     std::mutex mutex;
-    std::vector<glm::vec3> collision_positions;
+    std::vector<ContactEvent> new_sound_waves;
 
     void OnContactAdded(
-        const JPH::Body& body1, const JPH::Body& body2,
+        const JPH::Body& body_1, const JPH::Body& body_2,
         const JPH::ContactManifold& manifold,
         JPH::ContactSettings&
     ) override {
-        if (!bullet_ids.count(body1.GetID().GetIndexAndSequenceNumber()) && !bullet_ids.count(body2.GetID().GetIndexAndSequenceNumber())) return;
-
-        JPH::Vec3 rel_vel = body1.GetLinearVelocity() - body2.GetLinearVelocity();
+        JPH::Vec3 rel_vel = body_1.GetLinearVelocity() - body_2.GetLinearVelocity();
         float impact_speed = abs(rel_vel.Dot(manifold.mWorldSpaceNormal));
-        if (impact_speed < 2.0f) return;
-        
-        bool bullet_is_body1 = bullet_ids.count(body1.GetID().GetIndexAndSequenceNumber());
-        JPH::Vec3 pos = bullet_is_body1 ? manifold.GetWorldSpaceContactPointOn1(0) : manifold.GetWorldSpaceContactPointOn2(0);
+        if (impact_speed < 1.0f) return;
 
-        JPH::Vec3 normal = bullet_is_body1 ? manifold.mWorldSpaceNormal : -manifold.mWorldSpaceNormal;
-        glm::vec3 collision_pos = glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ()) + 0.01f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+        JPH::Vec3 pos = manifold.GetWorldSpaceContactPointOn1(0);
+        JPH::Vec3 normal = manifold.mWorldSpaceNormal;
+        glm::vec3 new_origin = glm::vec3(pos.GetX(), pos.GetY(), pos.GetZ());
+        
+        if (!body_1.IsStatic()) new_origin += 0.1f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+        else if (!body_2.IsStatic()) new_origin -= 0.1f * glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
+
+        float speed_1 = body_1.GetLinearVelocity().Length();
+        float speed_2 = body_2.GetLinearVelocity().Length();
+        float kinetic_energy_1 = body_1.IsStatic() ? 0.0f : 0.5f / body_1.GetMotionProperties()->GetInverseMass() * speed_1 * speed_1;
+        float kinetic_energy_2 = body_2.IsStatic() ? 0.0f : 0.5f / body_2.GetMotionProperties()->GetInverseMass() * speed_2 * speed_2;
+        float restitution = (body_1.GetRestitution() + body_2.GetRestitution()) / 2.0f;
+        float energy_lost = (kinetic_energy_1 + kinetic_energy_2) * (1 - restitution * restitution);
+        energy_lost = energy_lost * kinetic_energy_to_amplitude;
 
         std::lock_guard<std::mutex> lock(mutex);
-        collision_positions.push_back(collision_pos);
+        new_sound_waves.push_back({new_origin, body_1.GetID(), body_2.GetID(), energy_lost});
     }
+};
+
+class IgnoreBodyFilter : public JPH::BodyFilter {
+public:
+    JPH::BodyID ignored_id_1;
+    JPH::BodyID ignored_id_2;
+    IgnoreBodyFilter(JPH::BodyID body_id_1, JPH::BodyID body_id_2 = JPH::BodyID()) : ignored_id_1(body_id_1), ignored_id_2(body_id_2) {}
+    bool ShouldCollide(const JPH::BodyID& body_id) const override { return body_id != ignored_id_1 && body_id != ignored_id_2; }
+    bool ShouldCollideLocked(const JPH::Body&) const override { return true; }
+};
+
+struct CollisionProperties {
+    glm::vec3 position;
+    int ignore_index_1 = -1;
+    int ignore_index_2 = -1;
+    float amplitude = 0.0f;
 };
 
 class PhysicsHandle {
 private:
+    const int step_size = 2;
     const JPH::uint physics_max_bodies = 1024;
     const JPH::uint physics_num_mutexes = 0;
     const JPH::uint physics_max_body_pairs = 1024;
@@ -105,10 +138,11 @@ private:
     BPLayerInterface bp_layer_interface;
     ObjVsBPLayerFilter obj_vs_bp_layer_filter;
     ObjVsObjFilter obj_vs_obj_filter;
-    BulletContactListener bullet_contact_listener;
+    ObjContactListener contact_listener;
     JPH::TempAllocatorImpl* physics_temp_allocator = nullptr;
     JPH::JobSystemThreadPool* physics_job_system = nullptr;
     JPH::PhysicsSystem* physics_system = nullptr;
+    std::unordered_map<JPH::uint32, int> body_id_to_index;
     std::vector<JPH::BodyID> physics_body_ids;
     std::vector<JPH::BodyID> bullet_body_ids;
     std::vector<size_t> bullet_object_indices;
@@ -121,9 +155,10 @@ public:
     PhysicsHandle(const PhysicsHandle&) = delete;
     PhysicsHandle& operator=(const PhysicsHandle&) = delete;
 
-    std::vector<glm::vec3> update(float delta_time, const std::vector<VulkanObject*> objects);
+    std::vector<CollisionProperties> update(float delta_time, const std::vector<VulkanObject*> objects);
     void load_object_physics(const std::vector<VulkanObject*> objects);
     void fire_bullet(glm::vec3 position, glm::vec3 direction, const std::vector<VulkanObject*>& objects);
+    std::vector<glm::vec3> find_reflection_points(glm::vec3 origin, int num_rays, float max_dist, int ignore_index_1 = -1, int ignore_index_2 = -1);
 };
 
 #endif

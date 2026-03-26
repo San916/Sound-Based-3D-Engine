@@ -15,10 +15,14 @@ layout(binding = 2) uniform UniformBufferObject {
 
 layout(binding = 3) buffer StorageBufferObject {
     mat4 model[16];
-    vec4 sound_waves[64];
+    vec4 sound_waves[1024];
+    float amplitudes[1024];
+    int ignore_object_1[1024];
+    int ignore_object_2[1024];
     int visible[16];
     int emitting[16];
     int selected_object_index;
+    int num_sound_waves;
 } ssbo;
 
 layout(binding = 4, r32i) uniform iimage2D object_id_image;
@@ -115,30 +119,41 @@ void main() {
     vec3 hit_point = ray_origin + dist_from_surface * ray_dir;
 
     float intensity = 0.0;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < ssbo.num_sound_waves && i < 1024; i++) {
+        if (intensity >= 1.0) break;
+        
         float wave_radius = ssbo.sound_waves[i].w;
         if (wave_radius < 0.0) continue;
         vec3 wave_origin = ssbo.sound_waves[i].xyz;
 
-        vec3 surface_to_source = wave_origin - hit_point;
-        float dist_to_source = length(surface_to_source);
+        bool wave_from_camera = ssbo.amplitudes[i] == 0.0;
+        if (wave_from_camera) continue;
 
-        float round_trip_dist = dist_to_source + dist_from_surface;
-        round_trip_dist /= 2;
-        if (abs(round_trip_dist - wave_radius) > 2.0) continue;
-        float decay_val = wave_radius > round_trip_dist ? exp(-abs(round_trip_dist - wave_radius)) : 0.0;
+        float dist_to_source = length(wave_origin - hit_point);
 
-        if (is_ray_obstructed(wave_origin, hit_point)) continue;
+        float total_path = dist_to_source + dist_from_surface;
 
-        intensity += clamp(2.0 / (round_trip_dist * round_trip_dist), 0.0, decay_val);
+        if (wave_radius < total_path) continue;
+        float decay_val = exp(-(wave_radius - total_path) * 0.3);
+        if (decay_val < 0.005) continue;
+
+        float contribution = clamp(2.0 / (total_path * total_path), 0.0, decay_val) * ssbo.amplitudes[i];
+        if (contribution < 0.001) continue;
+
+        bool propagates_through_object = 
+            ssbo.ignore_object_1[i] >= 0 && object_id == ssbo.ignore_object_1[i] ||
+            ssbo.ignore_object_2[i] >= 0 && object_id == ssbo.ignore_object_2[i];
+        if (!propagates_through_object && is_ray_obstructed(wave_origin, hit_point)) continue;
+
+        intensity += contribution;
     }
 
     if (intensity > 0.0) {
         float grid_size = max(1.0, (1 - intensity) * 4);
         int grid = int(grid_size);
-        if (viewport_pos.x % grid < 2 && viewport_pos.y % grid < 2) {
+        //if (viewport_pos.x % grid < 2 && viewport_pos.y % grid < 2) {
             color.rgb += vec3(intensity);
-        }
+        //}
     }
     
     imageStore(storage_image, viewport_pos, color);

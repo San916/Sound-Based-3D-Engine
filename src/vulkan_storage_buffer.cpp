@@ -48,7 +48,7 @@ void update_storage_buffer(
     uint32_t frame_index,
     int selected_object_index,
     const std::vector<ObjectProperties> properties,
-    const std::vector<glm::vec4>& sound_waves,
+    const std::vector<SoundWave>& sound_waves,
     std::vector<void*>& storage_buffers_mapped
 ) {
     StorageBufferObject storage_buffer{};
@@ -62,8 +62,12 @@ void update_storage_buffer(
     }
 
     for (size_t i = 0; i < MAX_SOUND_WAVES; i++) {
-        storage_buffer.sound_waves[i] = (i < sound_waves.size()) ? sound_waves[i] : glm::vec4(0.0f, 0.0f, 0.0f, -1.0f);
+        storage_buffer.sound_waves[i] = (i < sound_waves.size()) ? sound_waves[i].data : glm::vec4(0.0f, 0.0f, 0.0f, -1.0f);
+        storage_buffer.amplitudes[i] = (i < sound_waves.size()) ? sound_waves[i].amplitude : 0.0f;
+        storage_buffer.ignore_object_1[i] = (i < sound_waves.size()) ? sound_waves[i].ignore_object_1 : -1;
+        storage_buffer.ignore_object_2[i] = (i < sound_waves.size()) ? sound_waves[i].ignore_object_2 : -1;
     }
+    storage_buffer.num_sound_waves = static_cast<int>(sound_waves.size());
 
     memcpy(storage_buffers_mapped[frame_index], &storage_buffer, sizeof(storage_buffer));
 }

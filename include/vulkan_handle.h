@@ -11,6 +11,7 @@
 
 #include <vulkan_index_buffer.h>
 #include <vulkan_scene.h>
+#include <vulkan_storage_buffer.h>
 #include <vulkan_vertex_buffer.h>
 
 #include <physics.h>
@@ -80,7 +81,8 @@ private:
     std::vector<VkBuffer> storage_buffers;
     std::vector<VkDeviceMemory> storage_buffers_memory;
     std::vector<void*> storage_buffers_mapped;
-    std::vector<glm::vec4> sound_waves;
+    std::vector<SoundWave> sound_waves;
+    const int sound_wave_branching_factor = 8;
 
     std::vector<VkBuffer> uniform_buffers;
     std::vector<VkDeviceMemory> uniform_buffers_memory;
@@ -107,6 +109,7 @@ private:
     void draw_frame();
     void cleanup_physics();
     static void mouse_callback(GLFWwindow* window, double x_pos, double y_pos);
+    void spawn_wave(glm::vec3 position, int ignore_index_1 = -1, int ignore_index_2 = -1, float amplitude = 0.0f);
 public:
     VulkanHandle();
     VulkanHandle(const VulkanHandle&) = delete;

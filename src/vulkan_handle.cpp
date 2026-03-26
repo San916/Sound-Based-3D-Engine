@@ -408,6 +408,24 @@ VulkanHandle::~VulkanHandle() {
     glfwTerminate();
 }
 
+// MODIFIES: this->sound_waves
+// EFFECTS:
+//     Creates a sound wave at position, then fetches ahead of time sound_wave_branching_factor reflections
+//     These sound waves start at radius equal to the negative of the distance between sound wave origin and reflected wave origin,
+//         so they 'start' propagating when the sound wave reaches the reflected point
+void VulkanHandle::spawn_wave(glm::vec3 position, int ignore_index_1, int ignore_index_2, float amplitude) {
+    if (sound_waves.size() < MAX_SOUND_WAVES) {
+        sound_waves.push_back({glm::vec4(position, 0.0f), amplitude, ignore_index_1, ignore_index_2});
+    }
+
+    std::vector<glm::vec3> reflections = physics_handle->find_reflection_points(position, sound_wave_branching_factor, 20.0f, ignore_index_1, ignore_index_2);
+    for (const glm::vec3& reflection : reflections) {
+        if (sound_waves.size() >= MAX_SOUND_WAVES) break;
+        float delay = glm::distance(position, reflection);
+        sound_waves.push_back({glm::vec4(reflection, -glm::distance(position, reflection)), amplitude, ignore_index_1, ignore_index_2});
+    }
+};
+
 void VulkanHandle::run() {
     auto previous_time = std::chrono::high_resolution_clock::now();
     while(!glfwWindowShouldClose(window)) {
@@ -462,32 +480,31 @@ void VulkanHandle::run() {
             }
         }
 
-        for  (size_t i = 0; i < sound_waves.size(); i++) {
-            sound_waves[i].w += delta_time * 6.0f;
+        for (size_t i = 0; i < sound_waves.size(); i++) {
+            sound_waves[i].data.w += delta_time * 30.0f;
         }
         sound_waves.erase(
-            std::remove_if(sound_waves.begin(), sound_waves.end(), 
-                [&](const glm::vec4 sound_wave) { return sound_wave.w > 20.f; }
+            std::remove_if(sound_waves.begin(), sound_waves.end(),
+                [](const SoundWave& sound_wave) { return sound_wave.data.w > 60.0f; }
             ),
             sound_waves.end()
         );
 
+
         std::vector<VulkanObject*> objects = scene->get_objects();
-        for (VulkanObject* obj : objects) {
+        for (size_t i = 0; i < objects.size(); i++) {
+            VulkanObject* obj = objects[i];
             if (!obj->properties.emitting) continue;
             obj->properties.emit_cooldown -= delta_time;
             if (obj->properties.emit_cooldown <= 0.0f) {
-                if (sound_waves.size() >= MAX_SOUND_WAVES) continue;
-                sound_waves.push_back(glm::vec4(obj->properties.position, 0.0f));
+                spawn_wave(obj->properties.position, static_cast<int>(i), -1, 1.0f);
                 obj->properties.emit_cooldown = obj->properties.emit_interval;
             }
         }
 
         bool q_pressed = glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS;
         if (q_pressed && !q_held_down) {
-            if (sound_waves.size() < MAX_SOUND_WAVES) {
-                sound_waves.push_back(glm::vec4(camera_position, 0.0f));
-            }
+            spawn_wave(camera_position, -1, -1, 1.0f);
         }
         q_held_down = q_pressed;
 
@@ -499,11 +516,11 @@ void VulkanHandle::run() {
 
         glfwPollEvents();
 
-        std::vector<glm::vec3> collisions = physics_handle->update(delta_time / 5.0f, objects);
-        for (const glm::vec3& pos : collisions) {
-            if (sound_waves.size() < MAX_SOUND_WAVES)
-                sound_waves.push_back(glm::vec4(pos, 0.0f));
+        std::vector<CollisionProperties> collisions = physics_handle->update(delta_time / 2.0f, objects);
+        for (const CollisionProperties& collision : collisions) {
+            spawn_wave(collision.position, collision.ignore_index_1, collision.ignore_index_2, collision.amplitude);
         }
+
         draw_frame();
     }
     vkDeviceWaitIdle(logical_device);

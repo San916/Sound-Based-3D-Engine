@@ -136,6 +136,22 @@ void create_storage_image(
     finish_single_time_command(logical_device, graphics_queue, command_pool, command_buffer);
 }
 
+// MODIFIES: storage_image
+// EFFECTS: Zero initializes the given storage_image
+void init_storage_image(VkDevice logical_device, VkCommandPool command_pool, VkQueue graphics_queue, VkImage& storage_image) {
+    VkCommandBuffer cmd;
+    begin_single_time_command(logical_device, command_pool, cmd);
+
+    VkClearColorValue clear_color{};
+    VkImageSubresourceRange range{};
+    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    range.levelCount = 1;
+    range.layerCount = 1;
+    vkCmdClearColorImage(cmd, storage_image, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &range);
+
+    finish_single_time_command(logical_device, graphics_queue, command_pool, cmd);
+}
+
 // MODIFIES: storage_image, storage_image_memory, storage_image_view
 void cleanup_storage_image(
     VkDevice logical_device, 
