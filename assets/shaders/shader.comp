@@ -67,25 +67,29 @@ float get_ray_hit(vec3 ray_origin, vec3 ray_dir, out int object_id) {
     return rayQueryGetIntersectionTEXT(ray_query, true);
 }
 
-bool is_ray_obstructed(vec3 ray_origin, vec3 ray_target) {
+bool is_ray_obstructed(vec3 ray_origin, vec3 ray_target, int ignore_1, int ignore_2) {
     vec3 ray_dir = ray_target - ray_origin;
     float dist = length(ray_dir);
 
     rayQueryEXT ray_query;
     rayQueryInitializeEXT(
-        ray_query, 
-        tlas, 
-        gl_RayFlagsNoneEXT, 
-        0x01, 
-        ray_origin, 
-        0.01, 
-        normalize(ray_dir), 
+        ray_query,
+        tlas,
+        gl_RayFlagsNoneEXT,
+        0xFF,
+        ray_origin,
+        0.01,
+        normalize(ray_dir),
         dist - 0.01
     );
 
     while (rayQueryProceedEXT(ray_query)) {};
 
-    return rayQueryGetIntersectionTypeEXT(ray_query, true) == gl_RayQueryCommittedIntersectionTriangleEXT;
+    if (rayQueryGetIntersectionTypeEXT(ray_query, true) != gl_RayQueryCommittedIntersectionTriangleEXT)
+        return false;
+
+    int hit_id = rayQueryGetIntersectionInstanceIdEXT(ray_query, true);
+    return hit_id != ignore_1 && hit_id != ignore_2;
 }
 
 void main() {
@@ -143,7 +147,7 @@ void main() {
         bool propagates_through_object = 
             ssbo.ignore_object_1[i] >= 0 && object_id == ssbo.ignore_object_1[i] ||
             ssbo.ignore_object_2[i] >= 0 && object_id == ssbo.ignore_object_2[i];
-        if (!propagates_through_object && is_ray_obstructed(wave_origin, hit_point)) continue;
+        if (!propagates_through_object && is_ray_obstructed(wave_origin, hit_point, ssbo.ignore_object_1[i], ssbo.ignore_object_2[i])) continue;
 
         intensity += contribution;
     }
