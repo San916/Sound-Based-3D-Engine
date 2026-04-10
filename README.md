@@ -22,3 +22,7 @@ cmake --build . --config Release
 
 release\engine
 ```
+# Demo
+(This demo contains slight artifacting)
+<img src="assets/github_demo/demo.gif">
+<img src="assets/github_demo/physics_demo.gif">
